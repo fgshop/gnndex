@@ -27,6 +27,8 @@
    - 다국어 품질 게이트, 원어민 톤/법률 문구 검수 체크리스트
 11. `11_LEGAL_LOCALE_REVIEW_ISSUES.md`
    - 법률 번역 로케일별 우선 이슈 리스트 및 웨이브별 수정 순서
+12. `12_FRONTEND_HERO_AND_2FA.md`
+   - 히어로 Cosmic Background(지구·위성·유성·테마 전환) 및 2FA QR 코드 구현 상세
 
 ## 2. 우선순위 규칙
 

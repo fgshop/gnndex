@@ -21,6 +21,14 @@ interface City {
   lat: number; lng: number; r: number; bright: number; sp: number; off: number; cont: number;
 }
 interface NetLine { from: number; to: number; off: number; sp: number }
+interface Satellite {
+  orbitR: number;   // radius multiplier relative to Earth R
+  incl: number;     // inclination angle (radians)
+  phase: number;    // initial orbital phase
+  speed: number;    // orbital speed
+  size: number;     // dot size
+  bright: number;   // brightness
+}
 
 /* ── Continent colors ── */
 const CC_DARK: Record<number, [number, number, number]> = {
@@ -187,6 +195,8 @@ export function CosmicBackground({ className }: { className?: string }) {
     }
     resize();
     addEventListener("resize", resize);
+    const resizeObs = new ResizeObserver(resize);
+    resizeObs.observe(cvs);
     const obs = new MutationObserver(() => { dk = isDark(); });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
@@ -246,6 +256,30 @@ export function CosmicBackground({ className }: { className?: string }) {
       }
     }
 
+    /* ── Satellites / Starlink ── */
+    const sats: Satellite[] = [
+      // LEO Starlink constellation — fast, low orbits, varied inclinations
+      { orbitR: 1.12, incl: 0.92,  phase: 0.0,  speed: 0.0032, size: 1.0, bright: 0.9 },
+      { orbitR: 1.12, incl: 0.92,  phase: 1.05, speed: 0.0032, size: 1.0, bright: 0.85 },
+      { orbitR: 1.12, incl: 0.92,  phase: 2.1,  speed: 0.0032, size: 1.0, bright: 0.8 },
+      { orbitR: 1.12, incl: 0.92,  phase: 3.15, speed: 0.0032, size: 0.9, bright: 0.75 },
+      { orbitR: 1.12, incl: 0.92,  phase: 4.2,  speed: 0.0032, size: 0.9, bright: 0.85 },
+      { orbitR: 1.14, incl: -0.75, phase: 0.5,  speed: 0.0028, size: 1.0, bright: 0.8 },
+      { orbitR: 1.14, incl: -0.75, phase: 1.7,  speed: 0.0028, size: 0.9, bright: 0.75 },
+      { orbitR: 1.14, incl: -0.75, phase: 2.9,  speed: 0.0028, size: 1.0, bright: 0.85 },
+      { orbitR: 1.14, incl: -0.75, phase: 4.1,  speed: 0.0028, size: 0.9, bright: 0.8 },
+      // MEO — medium orbit
+      { orbitR: 1.22, incl: 0.45,  phase: 0.3,  speed: 0.002,  size: 1.2, bright: 0.9 },
+      { orbitR: 1.22, incl: 0.45,  phase: 2.4,  speed: 0.002,  size: 1.1, bright: 0.85 },
+      { orbitR: 1.22, incl: 0.45,  phase: 4.5,  speed: 0.002,  size: 1.2, bright: 0.8 },
+      // Polar orbit
+      { orbitR: 1.18, incl: 1.48,  phase: 1.0,  speed: 0.0025, size: 1.1, bright: 0.85 },
+      { orbitR: 1.18, incl: 1.48,  phase: 3.5,  speed: 0.0025, size: 1.0, bright: 0.8 },
+      // GEO — slow, high orbit
+      { orbitR: 1.35, incl: 0.12,  phase: 0.8,  speed: 0.0008, size: 1.4, bright: 0.95 },
+      { orbitR: 1.35, incl: 0.12,  phase: 3.9,  speed: 0.0008, size: 1.3, bright: 0.9 },
+    ];
+
     /* ── Shooting stars ── */
     const shoots: Shoot[] = [];
     let lastSp = 0;
@@ -295,11 +329,11 @@ export function CosmicBackground({ className }: { className?: string }) {
         og.addColorStop(0.7, "hsl(215,50%,9%)"); og.addColorStop(1, "hsl(220,45%,4%)");
         c!.fillStyle = og; c!.fill();
       } else {
-        /* ── Light: subtle tinted fill ── */
+        /* ── Light: tinted fill ── */
         const lf = c!.createRadialGradient(cx - R * 0.2, cy - R * 0.3, 0, cx, cy, R);
-        lf.addColorStop(0, "hsla(210,40%,92%,0.35)");
-        lf.addColorStop(0.5, "hsla(215,35%,88%,0.2)");
-        lf.addColorStop(1, "hsla(220,30%,85%,0.08)");
+        lf.addColorStop(0, "hsla(210,45%,88%,0.5)");
+        lf.addColorStop(0.5, "hsla(215,40%,83%,0.35)");
+        lf.addColorStop(1, "hsla(220,35%,78%,0.15)");
         c!.fillStyle = lf; c!.fill();
       }
 
@@ -312,8 +346,8 @@ export function CosmicBackground({ className }: { className?: string }) {
           if (!p.vis) continue;
           if (lng === 0) c!.moveTo(p.x, p.y); else c!.lineTo(p.x, p.y);
         }
-        c!.strokeStyle = dk ? "hsla(200,30%,40%,0.05)" : "hsla(217,35%,65%,0.07)";
-        c!.lineWidth = 0.4; c!.stroke();
+        c!.strokeStyle = dk ? "hsla(200,30%,40%,0.05)" : "hsla(217,45%,55%,0.2)";
+        c!.lineWidth = dk ? 0.4 : 0.6; c!.stroke();
       }
 
       /* ── Grid lines (longitude) ── */
@@ -327,8 +361,8 @@ export function CosmicBackground({ className }: { className?: string }) {
           if (!p.vis) { started = false; continue; }
           if (!started) { c!.moveTo(p.x, p.y); started = true; } else c!.lineTo(p.x, p.y);
         }
-        c!.strokeStyle = dk ? "hsla(200,30%,40%,0.04)" : "hsla(217,35%,65%,0.06)";
-        c!.lineWidth = 0.4; c!.stroke();
+        c!.strokeStyle = dk ? "hsla(200,30%,40%,0.04)" : "hsla(217,45%,55%,0.18)";
+        c!.lineWidth = dk ? 0.4 : 0.6; c!.stroke();
       }
 
       /* ── Continent shapes ── */
@@ -351,12 +385,10 @@ export function CosmicBackground({ className }: { className?: string }) {
           c!.strokeStyle = `hsla(${cont.fill},25%,35%,0.3)`;
           c!.lineWidth = 0.8; c!.stroke();
         } else {
-          c!.fillStyle = `hsla(217,25%,80%,0.08)`;
+          c!.fillStyle = `hsla(217,30%,75%,0.18)`;
           c!.fill();
-          c!.setLineDash([4, 3]);
-          c!.strokeStyle = `hsla(217,40%,55%,0.25)`;
-          c!.lineWidth = 0.9; c!.stroke();
-          c!.setLineDash([]);
+          c!.strokeStyle = `hsla(217,50%,45%,0.5)`;
+          c!.lineWidth = 1.2; c!.stroke();
         }
       }
 
@@ -406,12 +438,12 @@ export function CosmicBackground({ className }: { className?: string }) {
         } else {
           // Outer ring
           const dr = ct.r * (0.6 + p.d * 0.4);
-          c!.beginPath(); c!.arc(p.x, p.y, dr * 3, 0, Math.PI * 2);
-          c!.strokeStyle = `hsla(${col[0]},${col[1]}%,${col[2]}%,${alpha * 0.4})`;
-          c!.lineWidth = 0.5; c!.stroke();
+          c!.beginPath(); c!.arc(p.x, p.y, dr * 3.5, 0, Math.PI * 2);
+          c!.strokeStyle = `hsla(${col[0]},${col[1]}%,${col[2]}%,${alpha * 0.7})`;
+          c!.lineWidth = 0.8; c!.stroke();
           // Core
-          c!.beginPath(); c!.arc(p.x, p.y, dr, 0, Math.PI * 2);
-          c!.fillStyle = `hsla(${col[0]},${col[1]}%,${col[2]}%,${Math.min(1, alpha * 0.9)})`;
+          c!.beginPath(); c!.arc(p.x, p.y, dr * 1.2, 0, Math.PI * 2);
+          c!.fillStyle = `hsla(${col[0]},${col[1]}%,${col[2]}%,${Math.min(1, alpha * 1.2)})`;
           c!.fill();
         }
       }
@@ -457,21 +489,19 @@ export function CosmicBackground({ className }: { className?: string }) {
             c!.fillStyle = `hsla(200,95%,90%,${Math.min(1, pAlpha * 1.5)})`; c!.fill();
           }
         } else {
-          // Light mode — dashed line
-          c!.setLineDash([3, 3]);
+          // Light mode — solid line
           c!.beginPath(); c!.moveTo(a.x, a.y); c!.quadraticCurveTo(ctX, ctY, b.x, b.y);
-          c!.strokeStyle = `hsla(217,60%,55%,${baseA * 0.25})`; c!.lineWidth = 0.8; c!.stroke();
-          c!.setLineDash([]);
+          c!.strokeStyle = `hsla(217,60%,50%,${baseA * 0.45})`; c!.lineWidth = 0.9; c!.stroke();
 
           // Traveling dots
           for (let pi = 0; pi < 2; pi++) {
             const t = ((f * 0.005 + nl.off + pi * 0.5) % 1);
             const px = (1 - t) ** 2 * a.x + 2 * (1 - t) * t * ctX + t * t * b.x;
             const py = (1 - t) ** 2 * a.y + 2 * (1 - t) * t * ctY + t * t * b.y;
-            const pA = baseA * 0.6 * (1 - Math.abs(t - 0.5) * 1.2);
+            const pA = baseA * 0.8 * (1 - Math.abs(t - 0.5) * 1.2);
             if (pA < 0.02) continue;
-            c!.beginPath(); c!.arc(px, py, 2, 0, Math.PI * 2);
-            c!.fillStyle = `hsla(217,80%,50%,${Math.min(1, pA * 1.5)})`; c!.fill();
+            c!.beginPath(); c!.arc(px, py, 2.5, 0, Math.PI * 2);
+            c!.fillStyle = `hsla(217,80%,45%,${Math.min(1, pA * 1.5)})`; c!.fill();
           }
         }
       }
@@ -491,7 +521,79 @@ export function CosmicBackground({ className }: { className?: string }) {
       /* ── Outer ring (light mode) ── */
       if (!dk) {
         c!.beginPath(); c!.arc(cx, cy, R, 0, Math.PI * 2);
-        c!.strokeStyle = "hsla(217,40%,60%,0.18)"; c!.lineWidth = 0.9; c!.stroke();
+        c!.strokeStyle = "hsla(217,50%,50%,0.4)"; c!.lineWidth = 1.2; c!.stroke();
+      }
+
+      /* ── Satellites / Starlink ── */
+      for (const sat of sats) {
+        const oR = R * sat.orbitR;
+        const angle = f * sat.speed + sat.phase;
+        // 3D orbital position: orbit in XZ plane, then tilt by inclination around X-axis
+        const ox = Math.cos(angle) * oR;
+        const oy0 = 0;
+        const oz0 = Math.sin(angle) * oR;
+        // Tilt orbit by inclination
+        const cosI = Math.cos(sat.incl), sinI = Math.sin(sat.incl);
+        const oy = oy0 * cosI - oz0 * sinI;
+        const oz = oy0 * sinI + oz0 * cosI;
+        // Apply Earth's axial tilt
+        const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+        const sx = ox * cosT - oy * sinT;
+        const sy = ox * sinT + oy * cosT;
+
+        // Project to 2D — behind Earth means z < 0
+        const px = cx + sx;
+        const py = cy - sy;
+        const isBehind = oz < 0;
+
+        // Draw orbit path (subtle ellipse)
+        const ORBIT_PTS = 64;
+        c!.beginPath();
+        let started = false;
+        for (let i = 0; i <= ORBIT_PTS; i++) {
+          const a2 = (i / ORBIT_PTS) * Math.PI * 2;
+          const tx = Math.cos(a2) * oR;
+          const tz0 = Math.sin(a2) * oR;
+          const ty = -tz0 * sinI;
+          const tz = tz0 * cosI;
+          const fx = tx * cosT - ty * sinT;
+          const fy = tx * sinT + ty * cosT;
+          // Only draw visible (front) portion
+          if (tz < 0) { started = false; continue; }
+          const ptx = cx + fx, pty = cy - fy;
+          if (!started) { c!.moveTo(ptx, pty); started = true; } else { c!.lineTo(ptx, pty); }
+        }
+        if (dk) {
+          c!.strokeStyle = `hsla(200,60%,70%,0.06)`;
+        } else {
+          c!.strokeStyle = `hsla(217,50%,55%,0.12)`;
+        }
+        c!.lineWidth = 0.4; c!.stroke();
+
+        if (isBehind) continue; // satellite is behind Earth
+
+        // Solar reflection flare (periodic brightening)
+        const flare = (Math.sin(f * 0.008 + sat.phase * 3) + 1) * 0.5;
+        const alpha = sat.bright * (0.6 + flare * 0.4);
+
+        if (dk) {
+          // Glow
+          const gr = sat.size * 6;
+          const gl = c!.createRadialGradient(px, py, 0, px, py, gr);
+          gl.addColorStop(0, `hsla(200,90%,85%,${alpha * 0.5})`);
+          gl.addColorStop(0.4, `hsla(200,80%,70%,${alpha * 0.12})`);
+          gl.addColorStop(1, "transparent");
+          c!.fillStyle = gl; c!.beginPath(); c!.arc(px, py, gr, 0, Math.PI * 2); c!.fill();
+          // Core
+          c!.beginPath(); c!.arc(px, py, sat.size, 0, Math.PI * 2);
+          c!.fillStyle = `hsla(200,90%,92%,${Math.min(1, alpha)})`; c!.fill();
+        } else {
+          // Light mode — dot + ring
+          c!.beginPath(); c!.arc(px, py, sat.size * 1.2, 0, Math.PI * 2);
+          c!.fillStyle = `hsla(217,70%,45%,${Math.min(1, alpha * 0.9)})`; c!.fill();
+          c!.beginPath(); c!.arc(px, py, sat.size * 3, 0, Math.PI * 2);
+          c!.strokeStyle = `hsla(217,60%,50%,${alpha * 0.35})`; c!.lineWidth = 0.5; c!.stroke();
+        }
       }
 
       /* ── Tilted axis indicator ── */
@@ -565,13 +667,13 @@ export function CosmicBackground({ className }: { className?: string }) {
             c!.beginPath(); c!.moveTo(s.trail[0].x, s.trail[0].y);
             for (let t = 1; t < s.trail.length; t++) c!.lineTo(s.trail[t].x, s.trail[t].y);
             const lh = s.hue === 43 ? 262 : s.hue;
-            c!.strokeStyle = `hsla(${lh},60%,55%,${0.25 * s.alpha})`; c!.lineWidth = 1; c!.stroke();
+            c!.strokeStyle = `hsla(${lh},65%,45%,${0.5 * s.alpha})`; c!.lineWidth = 1.5; c!.stroke();
           }
           const lh = s.hue === 43 ? 262 : s.hue;
-          c!.beginPath(); c!.arc(s.x, s.y, s.r * 0.8, 0, Math.PI * 2);
-          c!.fillStyle = `hsla(${lh},70%,50%,${s.alpha * 0.7})`; c!.fill();
-          c!.beginPath(); c!.arc(s.x, s.y, s.r * 2, 0, Math.PI * 2);
-          c!.strokeStyle = `hsla(${lh},60%,55%,${s.alpha * 0.3})`; c!.lineWidth = 0.6; c!.stroke();
+          c!.beginPath(); c!.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          c!.fillStyle = `hsla(${lh},75%,42%,${s.alpha * 0.9})`; c!.fill();
+          c!.beginPath(); c!.arc(s.x, s.y, s.r * 2.5, 0, Math.PI * 2);
+          c!.strokeStyle = `hsla(${lh},65%,48%,${s.alpha * 0.5})`; c!.lineWidth = 0.8; c!.stroke();
         }
         if (s.life >= s.maxLife || s.y < -60 || s.x < -60 || s.x > W + 60) shoots.splice(i, 1);
       }
@@ -606,12 +708,12 @@ export function CosmicBackground({ className }: { className?: string }) {
           c!.fillStyle = `hsla(${s.hue},20%,95%,${Math.max(0.03, al)})`; c!.fill();
         }
       } else {
-        // Light mode subtle dots
+        // Light mode — visible dots with twinkle
         for (const s of stars) {
-          const al = s.a * 0.25 + Math.sin(frame * s.sp + s.off) * 0.08;
-          if (al < 0.04) continue;
-          c!.beginPath(); c!.arc(s.x * W, s.y * H, 0.6, 0, Math.PI * 2);
-          c!.fillStyle = `hsla(217,40%,60%,${al})`; c!.fill();
+          const al = s.a * 0.5 + Math.sin(frame * s.sp + s.off) * 0.15;
+          if (al < 0.06) continue;
+          c!.beginPath(); c!.arc(s.x * W, s.y * H, s.r * 0.5 + 0.3, 0, Math.PI * 2);
+          c!.fillStyle = `hsla(217,50%,50%,${al})`; c!.fill();
         }
       }
 
@@ -621,7 +723,7 @@ export function CosmicBackground({ className }: { className?: string }) {
     }
 
     animRef.current = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(animRef.current); removeEventListener("resize", resize); obs.disconnect(); };
+    return () => { cancelAnimationFrame(animRef.current); removeEventListener("resize", resize); resizeObs.disconnect(); obs.disconnect(); };
   }, []);
 
   return <canvas ref={canvasRef} className={className} style={{ width: "100%", height: "100%" }} />;
