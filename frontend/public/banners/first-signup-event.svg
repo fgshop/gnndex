@@ -1,0 +1,42 @@
+<svg width="600" height="120" viewBox="0 0 600 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10213E"/>
+      <stop offset="0.58" stop-color="#284B72"/>
+      <stop offset="1" stop-color="#9F4A1B"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="112" y2="22" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="cta" x1="0" y1="0" x2="140" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F1F5F9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="600" height="120" rx="20" fill="url(#bg)"/>
+  <circle cx="562" cy="18" r="34" fill="#38BDF8" fill-opacity="0.15"/>
+  <circle cx="580" cy="108" r="48" fill="#FB923C" fill-opacity="0.28"/>
+  <circle cx="538" cy="98" r="40" fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <rect x="16" y="14" width="112" height="22" rx="8" fill="url(#chip)"/>
+  <text x="23" y="29" fill="#0F172A" font-family="Pretendard, Noto Sans KR, sans-serif" font-size="9.5" font-weight="800">
+    신규 회원 특별 이벤트
+  </text>
+
+  <text x="16" y="70" fill="#FFFFFF" font-family="Pretendard, Noto Sans KR, sans-serif" font-size="24" font-weight="800">
+    첫 회원가입 즉시 리워드 지급
+  </text>
+  <text x="16" y="92" fill="#E2E8F0" font-family="Pretendard, Noto Sans KR, sans-serif" font-size="12.5" font-weight="500">
+    본인인증 완료 후 웰컴 혜택과 수수료 우대 쿠폰 제공
+  </text>
+
+  <rect x="444" y="34" width="140" height="48" rx="14" fill="url(#cta)"/>
+  <text x="466" y="64" fill="#0F172A" font-family="Pretendard, Noto Sans KR, sans-serif" font-size="22" font-weight="800">
+    회원가입
+  </text>
+  <text x="484" y="78" fill="#334155" font-family="Pretendard, Noto Sans KR, sans-serif" font-size="10.5" font-weight="700">
+    바로가기
+  </text>
+</svg>

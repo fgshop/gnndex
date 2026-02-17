@@ -1,0 +1,1352 @@
+openapi: 3.1.0
+info:
+  title: GnnDEX API
+  version: 1.17.0
+  description: GnnDEX trading exchange backend API v1 draft.
+servers:
+  - url: http://localhost:4000/v1
+    description: local
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "201":
+          description: Registered
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                twoFactorCode:
+                  type: string
+                userAgent:
+                  type: string
+                ipAddress:
+                  type: string
+      responses:
+        "201":
+          description: Auth tokens issued
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Rotate refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                userAgent:
+                  type: string
+                ipAddress:
+                  type: string
+      responses:
+        "201":
+          description: New token pair
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "201":
+          description: Revocation result
+  /auth/2fa/setup:
+    post:
+      tags: [auth]
+      summary: Setup 2FA TOTP secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "201":
+          description: Secret and otpauth URL
+  /auth/2fa/enable:
+    post:
+      tags: [auth]
+      summary: Enable 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                code:
+                  type: string
+      responses:
+        "201":
+          description: 2FA enabled
+  /market/tickers:
+    get:
+      tags: [market]
+      summary: Get ticker snapshots
+      parameters:
+        - in: query
+          name: symbols
+          schema:
+            type: string
+          description: Comma-separated symbols (for example BTC-USDT,ETH-USDT)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ticker snapshots
+  /market/stream/tickers:
+    get:
+      tags: [market]
+      summary: Stream ticker snapshots (SSE)
+      parameters:
+        - in: query
+          name: symbols
+          schema:
+            type: string
+          description: Comma-separated symbols (for example BTC-USDT,ETH-USDT)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: intervalMs
+          schema:
+            type: integer
+            minimum: 1000
+            maximum: 60000
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /market/orderbook/{symbol}:
+    get:
+      tags: [market]
+      summary: Get aggregated orderbook
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Orderbook levels
+  /market/candles:
+    get:
+      tags: [market]
+      summary: Get OHLCV candles
+      parameters:
+        - in: query
+          name: symbol
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: interval
+          schema:
+            type: string
+            enum: ["1m", "5m", "15m", "1h", "4h", "1d"]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Candle list
+  /wallet/balances:
+    get:
+      tags: [wallet]
+      summary: Get balances
+      responses:
+        "200":
+          description: Balance list
+  /wallet/stream/balances:
+    get:
+      tags: [wallet]
+      summary: Stream wallet balances (SSE)
+      parameters:
+        - in: query
+          name: intervalMs
+          schema:
+            type: integer
+            minimum: 1000
+            maximum: 60000
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /wallet/ledger:
+    get:
+      tags: [wallet]
+      summary: Get wallet ledger
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ledger entries
+  /wallet/withdrawals:
+    get:
+      tags: [wallet]
+      summary: List my withdrawals
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [REQUESTED, REVIEW_PENDING, APPROVED, REJECTED, BROADCASTED, CONFIRMED, FAILED]
+      responses:
+        "200":
+          description: Withdrawal list
+    post:
+      tags: [wallet]
+      summary: Request withdrawal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asset, network, address, amount]
+              properties:
+                asset:
+                  type: string
+                network:
+                  type: string
+                address:
+                  type: string
+                memo:
+                  type: string
+                amount:
+                  type: string
+                fee:
+                  type: string
+      responses:
+        "201":
+          description: Withdrawal requested
+  /wallet/admin-adjust:
+    post:
+      tags: [wallet]
+      summary: Adjust available balance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, asset, amount]
+              properties:
+                email:
+                  type: string
+                  format: email
+                asset:
+                  type: string
+                amount:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        "201":
+          description: Updated balance
+  /admin/users:
+    get:
+      tags: [admin]
+      summary: List users with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, LOCKED, SUSPENDED]
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+      responses:
+        "200":
+          description: User list
+  /admin/dashboard/overview:
+    get:
+      tags: [admin]
+      summary: Get dashboard overview with section-level permission checks and latest activity snapshots
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - in: query
+          name: orderStatus
+          schema:
+            type: string
+          description: order status substring filter (case-insensitive)
+        - in: query
+          name: orderSymbol
+          schema:
+            type: string
+          description: order symbol substring filter (case-insensitive)
+        - in: query
+          name: withdrawalStatus
+          schema:
+            type: string
+          description: withdrawal status substring filter (case-insensitive)
+        - in: query
+          name: auditAction
+          schema:
+            type: string
+          description: audit action substring filter (case-insensitive)
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardOverviewResponse"
+  /admin/dashboard/stream:
+    get:
+      tags: [admin]
+      summary: Stream dashboard overview with section-level permission checks (SSE)
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - in: query
+          name: orderStatus
+          schema:
+            type: string
+          description: order status substring filter (case-insensitive)
+        - in: query
+          name: orderSymbol
+          schema:
+            type: string
+          description: order symbol substring filter (case-insensitive)
+        - in: query
+          name: withdrawalStatus
+          schema:
+            type: string
+          description: withdrawal status substring filter (case-insensitive)
+        - in: query
+          name: auditAction
+          schema:
+            type: string
+          description: audit action substring filter (case-insensitive)
+        - in: query
+          name: intervalMs
+          schema:
+            type: integer
+            minimum: 1000
+            maximum: 60000
+      responses:
+        "200":
+          description: Dashboard overview SSE stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardOverviewStreamEvent"
+  /admin/dashboard/share-links:
+    post:
+      tags: [admin]
+      summary: Create expiring dashboard share link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminDashboardShareLinkCreateRequest"
+      responses:
+        "201":
+          description: Dashboard share link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardShareLinkCreateResponse"
+  /admin/dashboard/share-links/{shareCode}:
+    get:
+      tags: [admin]
+      summary: Resolve dashboard share link payload
+      parameters:
+        - in: path
+          name: shareCode
+          required: true
+          schema:
+            type: string
+            maxLength: 24
+            pattern: "^[A-Za-z0-9]+$"
+      responses:
+        "200":
+          description: Dashboard share link payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardShareLinkResolveResponse"
+  /admin/orders:
+    get:
+      tags: [admin]
+      summary: List orders with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: symbol
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        - in: query
+          name: email
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order list
+  /admin/permissions/users:
+    get:
+      tags: [admin]
+      summary: List admin users and permission grants
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+      responses:
+        "200":
+          description: Admin users with permissions
+  /admin/permissions/users/{userId}:
+    patch:
+      tags: [admin]
+      summary: Replace admin permission grants for a target admin user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - USER_READ
+                      - ORDER_READ
+                      - WALLET_LEDGER_READ
+                      - WITHDRAWAL_READ
+                      - WITHDRAWAL_APPROVE
+                      - WITHDRAWAL_REJECT
+                      - WITHDRAWAL_BROADCAST
+                      - WITHDRAWAL_CONFIRM
+                      - WITHDRAWAL_FAIL
+                      - BALANCE_ADJUST
+                      - AUDIT_LOG_READ
+                      - ADMIN_PERMISSION_READ
+                      - ADMIN_PERMISSION_WRITE
+      responses:
+        "200":
+          description: Updated admin permissions
+  /admin/wallet-ledger:
+    get:
+      tags: [admin]
+      summary: List wallet ledger with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: asset
+          schema:
+            type: string
+        - in: query
+          name: entryType
+          schema:
+            type: string
+            enum: [DEPOSIT, WITHDRAWAL, ORDER_LOCK, ORDER_UNLOCK, TRADE_SETTLEMENT, ADJUSTMENT]
+      responses:
+        "200":
+          description: Wallet ledger list
+  /admin/withdrawals:
+    get:
+      tags: [admin]
+      summary: List withdrawals with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: asset
+          schema:
+            type: string
+        - in: query
+          name: network
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [REQUESTED, REVIEW_PENDING, APPROVED, REJECTED, BROADCASTED, CONFIRMED, FAILED]
+        - in: query
+          name: fromRequestedAt
+          schema:
+            type: string
+            format: date-time
+          description: requestedAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toRequestedAt
+          schema:
+            type: string
+            format: date-time
+          description: requestedAt upper bound (UTC ISO-8601)
+      responses:
+        "200":
+          description: Withdrawal list
+  /admin/withdrawals/{withdrawalId}/approve:
+    post:
+      tags: [admin]
+      summary: Approve pending withdrawal
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Approved withdrawal
+  /admin/withdrawals/{withdrawalId}/reject:
+    post:
+      tags: [admin]
+      summary: Reject pending withdrawal and unlock balance
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        "201":
+          description: Rejected withdrawal
+  /admin/withdrawals/{withdrawalId}/broadcast:
+    post:
+      tags: [admin]
+      summary: Mark approved withdrawal as broadcasted with txHash
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [txHash]
+              properties:
+                txHash:
+                  type: string
+      responses:
+        "201":
+          description: Broadcasted withdrawal
+  /admin/withdrawals/{withdrawalId}/confirm:
+    post:
+      tags: [admin]
+      summary: Confirm broadcasted withdrawal and finalize locked balance
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Confirmed withdrawal
+  /admin/withdrawals/{withdrawalId}/fail:
+    post:
+      tags: [admin]
+      summary: Mark withdrawal failed and unlock user balance
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        "201":
+          description: Failed withdrawal
+  /admin/audit-logs:
+    get:
+      tags: [admin]
+      summary: Search audit logs with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: action
+          schema:
+            type: string
+        - in: query
+          name: targetType
+          schema:
+            type: string
+        - in: query
+          name: actorEmail
+          schema:
+            type: string
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+      responses:
+        "200":
+          description: Audit logs list
+  /orders:
+    get:
+      tags: [orders]
+      summary: List orders with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: symbol
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        - in: query
+          name: statuses
+          description: Multi status filter (repeatable or comma-separated)
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        - in: query
+          name: side
+          schema:
+            type: string
+            enum: [BUY, SELL]
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [MARKET, LIMIT, STOP_LIMIT]
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [CREATED_AT, PRICE, QUANTITY]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [ASC, DESC]
+      responses:
+        "200":
+          description: Order list with pagination
+    post:
+      tags: [orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, side, type, quantity]
+              properties:
+                symbol:
+                  type: string
+                  example: BTC-USDT
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                type:
+                  type: string
+                  enum: [MARKET, LIMIT, STOP_LIMIT]
+                price:
+                  type: string
+                quantity:
+                  type: string
+      responses:
+        "201":
+          description: Created order
+  /orders/stream:
+    get:
+      tags: [orders]
+      summary: Stream user orders with filters and pagination (SSE)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: symbol
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        - in: query
+          name: statuses
+          description: Multi status filter (repeatable or comma-separated)
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        - in: query
+          name: side
+          schema:
+            type: string
+            enum: [BUY, SELL]
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [MARKET, LIMIT, STOP_LIMIT]
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [CREATED_AT, PRICE, QUANTITY]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [ASC, DESC]
+        - in: query
+          name: intervalMs
+          schema:
+            type: integer
+            minimum: 1000
+            maximum: 60000
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /orders/{orderId}:
+    delete:
+      tags: [orders]
+      summary: Cancel order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Canceled order
+components:
+  schemas:
+    Pagination:
+      type: object
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+    AdminDashboardPermissions:
+      type: object
+      required: [orderRead, withdrawalRead, auditLogRead]
+      properties:
+        orderRead:
+          type: boolean
+        withdrawalRead:
+          type: boolean
+        auditLogRead:
+          type: boolean
+    AdminDashboardSummary:
+      type: object
+      required:
+        [
+          openOrdersLoaded,
+          pendingWithdrawalsLoaded,
+          riskAlertsLoaded,
+          adminActionsLoaded,
+          permissionChangesLoaded
+        ]
+      properties:
+        openOrdersLoaded:
+          type: integer
+        pendingWithdrawalsLoaded:
+          type: integer
+        riskAlertsLoaded:
+          type: integer
+        adminActionsLoaded:
+          type: integer
+        permissionChangesLoaded:
+          type: integer
+    AdminDashboardSectionChanges:
+      type: object
+      required: [orders, withdrawals, auditLogs]
+      properties:
+        orders:
+          type: boolean
+        withdrawals:
+          type: boolean
+        auditLogs:
+          type: boolean
+    AdminDashboardSummaryDelta:
+      type: object
+      required:
+        [
+          openOrdersLoaded,
+          pendingWithdrawalsLoaded,
+          riskAlertsLoaded,
+          adminActionsLoaded,
+          permissionChangesLoaded
+        ]
+      properties:
+        openOrdersLoaded:
+          type: integer
+        pendingWithdrawalsLoaded:
+          type: integer
+        riskAlertsLoaded:
+          type: integer
+        adminActionsLoaded:
+          type: integer
+        permissionChangesLoaded:
+          type: integer
+    AdminDashboardOverviewDiff:
+      type: object
+      required: [changed, sectionChanges, summaryDelta]
+      properties:
+        changed:
+          type: boolean
+        sectionChanges:
+          $ref: "#/components/schemas/AdminDashboardSectionChanges"
+        summaryDelta:
+          $ref: "#/components/schemas/AdminDashboardSummaryDelta"
+    AdminDashboardSectionError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [PERMISSION_DENIED, SECTION_LOAD_FAILED]
+        message:
+          type: string
+    AdminDashboardOrderSnapshot:
+      type: object
+      required: [orderId, email, symbol, side, type, status, price, quantity, createdAt]
+      properties:
+        orderId:
+          type: string
+        email:
+          type: string
+          format: email
+        symbol:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        type:
+          type: string
+          enum: [MARKET, LIMIT, STOP_LIMIT]
+        status:
+          type: string
+          enum: [NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED]
+        price:
+          type: string
+          nullable: true
+        quantity:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AdminDashboardWithdrawalSnapshot:
+      type: object
+      required:
+        [
+          withdrawalId,
+          email,
+          asset,
+          network,
+          amount,
+          fee,
+          address,
+          status,
+          txHash,
+          rejectReason,
+          failureReason,
+          reviewedByUserId,
+          requestedAt,
+          reviewedAt,
+          broadcastedAt,
+          confirmedAt,
+          failedAt
+        ]
+      properties:
+        withdrawalId:
+          type: string
+        email:
+          type: string
+          format: email
+        asset:
+          type: string
+        network:
+          type: string
+        amount:
+          type: string
+        fee:
+          type: string
+        address:
+          type: string
+        status:
+          type: string
+          enum: [REQUESTED, REVIEW_PENDING, APPROVED, REJECTED, BROADCASTED, CONFIRMED, FAILED]
+        txHash:
+          type: string
+          nullable: true
+        rejectReason:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        reviewedByUserId:
+          type: string
+          nullable: true
+        requestedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        broadcastedAt:
+          type: string
+          format: date-time
+          nullable: true
+        confirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+    AdminDashboardAuditLogSnapshot:
+      type: object
+      required: [id, actorUserId, actorEmail, action, targetType, targetId, metadata, createdAt]
+      properties:
+        id:
+          type: string
+        actorUserId:
+          type: string
+          nullable: true
+        actorEmail:
+          type: string
+          nullable: true
+        action:
+          type: string
+        targetType:
+          type: string
+        targetId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    AdminDashboardOrdersSection:
+      type: object
+      required: [items, pagination, permissionDenied, partialError]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDashboardOrderSnapshot"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        permissionDenied:
+          type: boolean
+        partialError:
+          allOf:
+            - $ref: "#/components/schemas/AdminDashboardSectionError"
+          nullable: true
+    AdminDashboardWithdrawalsSection:
+      type: object
+      required: [items, pagination, permissionDenied, partialError]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDashboardWithdrawalSnapshot"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        permissionDenied:
+          type: boolean
+        partialError:
+          allOf:
+            - $ref: "#/components/schemas/AdminDashboardSectionError"
+          nullable: true
+    AdminDashboardAuditLogsSection:
+      type: object
+      required: [items, pagination, permissionDenied, partialError]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDashboardAuditLogSnapshot"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        permissionDenied:
+          type: boolean
+        partialError:
+          allOf:
+            - $ref: "#/components/schemas/AdminDashboardSectionError"
+          nullable: true
+    AdminDashboardOverviewResponse:
+      type: object
+      required: [generatedAt, permissions, summary, orders, withdrawals, auditLogs]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        permissions:
+          $ref: "#/components/schemas/AdminDashboardPermissions"
+        summary:
+          $ref: "#/components/schemas/AdminDashboardSummary"
+        orders:
+          $ref: "#/components/schemas/AdminDashboardOrdersSection"
+        withdrawals:
+          $ref: "#/components/schemas/AdminDashboardWithdrawalsSection"
+        auditLogs:
+          $ref: "#/components/schemas/AdminDashboardAuditLogsSection"
+    AdminDashboardErrorPayload:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    AdminDashboardOverviewStreamEvent:
+      type: object
+      required: [eventId, eventType, eventVersion, occurredAt, diff, data]
+      properties:
+        eventId:
+          type: string
+        eventType:
+          type: string
+          enum: [admin.dashboard.overview.full, admin.dashboard.overview.partial, admin.dashboard.error]
+        eventVersion:
+          type: integer
+          enum: [2]
+        occurredAt:
+          type: string
+          format: date-time
+        diff:
+          allOf:
+            - $ref: "#/components/schemas/AdminDashboardOverviewDiff"
+          nullable: true
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/AdminDashboardOverviewResponse"
+            - $ref: "#/components/schemas/AdminDashboardErrorPayload"
+    AdminDashboardSharePayload:
+      type: object
+      properties:
+        orderStatus:
+          type: string
+        orderSymbol:
+          type: string
+        withdrawalStatus:
+          type: string
+        auditAction:
+          type: string
+        presetSlot:
+          type: string
+          enum: [default, risk-watch, compliance]
+    AdminDashboardShareLinkCreateRequest:
+      type: object
+      properties:
+        orderStatus:
+          type: string
+          maxLength: 40
+        orderSymbol:
+          type: string
+          maxLength: 40
+        withdrawalStatus:
+          type: string
+          maxLength: 40
+        auditAction:
+          type: string
+          maxLength: 120
+        presetSlot:
+          type: string
+          enum: [default, risk-watch, compliance]
+        expiresInMinutes:
+          type: integer
+          minimum: 5
+          maximum: 10080
+    AdminDashboardShareLinkCreateResponse:
+      type: object
+      required: [shareCode, sharePath, expiresAt, createdAt, payload]
+      properties:
+        shareCode:
+          type: string
+        sharePath:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        payload:
+          $ref: "#/components/schemas/AdminDashboardSharePayload"
+    AdminDashboardShareLinkResolveResponse:
+      type: object
+      required: [shareCode, expiresAt, createdAt, payload]
+      properties:
+        shareCode:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        payload:
+          $ref: "#/components/schemas/AdminDashboardSharePayload"

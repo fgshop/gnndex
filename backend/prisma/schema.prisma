@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AdminPermission {
+  USER_READ
+  ORDER_READ
+  WALLET_LEDGER_READ
+  WITHDRAWAL_READ
+  WITHDRAWAL_APPROVE
+  WITHDRAWAL_REJECT
+  WITHDRAWAL_BROADCAST
+  WITHDRAWAL_CONFIRM
+  WITHDRAWAL_FAIL
+  BALANCE_ADJUST
+  AUDIT_LOG_READ
+  SUPPORT_TICKET_READ
+  SUPPORT_TICKET_REPLY
+  ADMIN_PERMISSION_READ
+  ADMIN_PERMISSION_WRITE
+  COMPLIANCE_APPROVE
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  SUSPENDED
+}
+
+enum WalletLedgerEntryType {
+  DEPOSIT
+  WITHDRAWAL
+  ORDER_LOCK
+  ORDER_UNLOCK
+  TRADE_SETTLEMENT
+  ADJUSTMENT
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP_LIMIT
+}
+
+enum OrderStatus {
+  NEW
+  PARTIALLY_FILLED
+  FILLED
+  CANCELED
+  REJECTED
+}
+
+enum WithdrawalStatus {
+  REQUESTED
+  REVIEW_PENDING
+  APPROVED
+  REJECTED
+  BROADCASTED
+  CONFIRMED
+  FAILED
+}
+
+enum SupportTicketStatus {
+  RECEIVED
+  IN_REVIEW
+  ANSWERED
+  CLOSED
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String          @map("password_hash")
+  role         UserRole        @default(USER)
+  status       UserStatus      @default(ACTIVE)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  balances     WalletBalance[]
+  orders       Order[]
+  security     UserSecurity?
+  refreshTokens RefreshToken[]
+  walletLedgers WalletLedger[]
+  withdrawals   Withdrawal[]
+  supportTickets SupportTicket[]
+  adminPermissions AdminPermissionGrant[]
+  auditLogs     AuditLog[]
+  dashboardShareLinks DashboardShareLink[]
+  requestedTradeSimulationComplianceRequests TradeSimulationComplianceRequest[] @relation("trade_sim_live_requested_by")
+  reviewedTradeSimulationComplianceRequests TradeSimulationComplianceRequest[] @relation("trade_sim_live_reviewed_by")
+
+  @@map("users")
+}
+
+model CoinListing {
+  id           String           @id @default(cuid())
+  symbol       String           @unique
+  baseAsset    String           @map("base_asset")
+  quoteAsset   String           @map("quote_asset")
+  chartSource  String           @default("BINANCE") @map("chart_source")
+  isActive     Boolean          @default(true) @map("is_active")
+  displayOrder Int              @default(0) @map("display_order")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  candles      InternalCandle[]
+  simulation   TradeSimulationConfig?
+  complianceRequests TradeSimulationComplianceRequest[]
+
+  @@index([isActive, displayOrder, symbol])
+  @@map("coin_listings")
+}
+
+model TradeSimulationConfig {
+  id           String               @id @default(cuid())
+  symbol       String               @unique
+  feature      String               @default("test-trade-simulator")
+  isEnabled    Boolean              @default(false) @map("is_enabled")
+  intervalPool Json                 @map("interval_pool")
+  mode         String               @default("SIMULATION_ONLY")
+  nextRunAt    DateTime?            @map("next_run_at")
+  lastRunAt    DateTime?            @map("last_run_at")
+  runCount     Int                  @default(0) @map("run_count")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  listing      CoinListing          @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+  logs         TradeSimulationLog[]
+
+  @@index([isEnabled, nextRunAt])
+  @@map("trade_simulation_configs")
+}
+
+model TradeSimulationLog {
+  id                  String                @id @default(cuid())
+  symbol              String
+  selectedIntervalMin Int                   @map("selected_interval_min")
+  scheduledAt         DateTime              @map("scheduled_at")
+  executedAt          DateTime              @map("executed_at")
+  status              String                @default("SIMULATED")
+  message             String?
+  createdAt           DateTime              @default(now()) @map("created_at")
+  config              TradeSimulationConfig @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@index([symbol, createdAt(sort: Desc)])
+  @@map("trade_simulation_logs")
+}
+
+model TradeSimulationComplianceRequest {
+  id                String      @id @default(cuid())
+  symbol            String
+  requestedMode     String      @default("LIVE_MARKET") @map("requested_mode")
+  status            String      @default("PENDING")
+  requestedByUserId String      @map("requested_by_user_id")
+  requestedReason   String      @map("requested_reason")
+  reviewedByUserId  String?     @map("reviewed_by_user_id")
+  reviewReason      String?     @map("review_reason")
+  requestedAt       DateTime    @default(now()) @map("requested_at")
+  reviewedAt        DateTime?   @map("reviewed_at")
+  expiresAt         DateTime?   @map("expires_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  listing           CoinListing @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+  requestedByUser   User        @relation("trade_sim_live_requested_by", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  reviewedByUser    User?       @relation("trade_sim_live_reviewed_by", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([symbol, status, requestedAt(sort: Desc)])
+  @@index([requestedByUserId, requestedAt(sort: Desc)])
+  @@index([reviewedByUserId, reviewedAt(sort: Desc)])
+  @@map("trade_simulation_compliance_requests")
+}
+
+model InternalCandle {
+  id        String      @id @default(cuid())
+  symbol    String
+  interval  String
+  openTime  DateTime    @map("open_time")
+  closeTime DateTime    @map("close_time")
+  open      Decimal     @db.Decimal(36, 18)
+  high      Decimal     @db.Decimal(36, 18)
+  low       Decimal     @db.Decimal(36, 18)
+  close     Decimal     @db.Decimal(36, 18)
+  volume    Decimal     @db.Decimal(36, 18)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  listing   CoinListing @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@unique([symbol, interval, openTime], map: "internal_candles_unique_symbol_interval_open_time")
+  @@index([symbol, interval, openTime(sort: Desc)])
+  @@map("internal_candles")
+}
+
+model SupportTicket {
+  id            String              @id @default(cuid())
+  userId        String              @map("user_id")
+  category      String
+  subject       String
+  content       String
+  contactEmail  String              @map("contact_email")
+  status        SupportTicketStatus @default(RECEIVED)
+  adminReply    String?             @map("admin_reply")
+  repliedAt     DateTime?           @map("replied_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("support_tickets")
+}
+
+model DashboardShareLink {
+  id             String   @id @default(cuid())
+  code           String   @unique @db.VarChar(24)
+  createdByUserId String  @map("created_by_user_id")
+  payload        Json
+  expiresAt      DateTime @map("expires_at")
+  lastAccessedAt DateTime? @map("last_accessed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdByUser  User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@map("dashboard_share_links")
+}
+
+model WalletBalance {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  asset     String
+  available Decimal  @db.Decimal(36, 18)
+  locked    Decimal  @db.Decimal(36, 18)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, asset], map: "wallet_unique_user_asset")
+  @@index([asset])
+  @@map("wallet_balances")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String      @map("user_id")
+  symbol    String
+  side      OrderSide
+  type      OrderType
+  price     Decimal?    @db.Decimal(36, 18)
+  quantity  Decimal     @db.Decimal(36, 18)
+  status    OrderStatus @default(NEW)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([symbol, status])
+  @@map("orders")
+}
+
+model UserSecurity {
+  id                 String    @id @default(cuid())
+  userId             String    @unique @map("user_id")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorVerifiedAt DateTime? @map("two_factor_verified_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_security")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("refresh_tokens")
+}
+
+model WalletLedger {
+  id            String                @id @default(cuid())
+  userId        String                @map("user_id")
+  asset         String
+  entryType     WalletLedgerEntryType @map("entry_type")
+  amount        Decimal               @db.Decimal(36, 18)
+  balanceBefore Decimal               @map("balance_before") @db.Decimal(36, 18)
+  balanceAfter  Decimal               @map("balance_after") @db.Decimal(36, 18)
+  referenceType String?               @map("reference_type")
+  referenceId   String?               @map("reference_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([asset, entryType])
+  @@map("wallet_ledger")
+}
+
+model Withdrawal {
+  id              String           @id @default(cuid())
+  userId          String           @map("user_id")
+  asset           String
+  network         String
+  address         String
+  memo            String?
+  amount          Decimal          @db.Decimal(36, 18)
+  fee             Decimal          @default(0) @db.Decimal(36, 18)
+  txHash          String?          @map("tx_hash")
+  status          WithdrawalStatus @default(REQUESTED)
+  rejectReason    String?          @map("reject_reason")
+  failureReason   String?          @map("failure_reason")
+  reviewedByUserId String?         @map("reviewed_by_user_id")
+  broadcastedAt   DateTime?        @map("broadcasted_at")
+  confirmedAt     DateTime?        @map("confirmed_at")
+  failedAt        DateTime?        @map("failed_at")
+  requestedAt     DateTime         @default(now()) @map("requested_at")
+  reviewedAt      DateTime?        @map("reviewed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([asset, network])
+  @@map("withdrawals")
+}
+
+model AdminPermissionGrant {
+  id             String          @id @default(cuid())
+  userId         String          @map("user_id")
+  permission     AdminPermission
+  grantedByUserId String?        @map("granted_by_user_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permission], map: "admin_permission_unique_user_permission")
+  @@index([permission])
+  @@map("admin_permission_grants")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?  @map("actor_user_id")
+  actorEmail  String?  @map("actor_email")
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String?  @map("target_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@index([actorEmail, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}

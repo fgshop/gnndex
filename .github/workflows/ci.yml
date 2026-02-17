@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  build-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate API client
+        run: npm --workspace packages/api-client run generate
+
+      - name: Build API client
+        run: npm --workspace packages/api-client exec -- tsc -b tsconfig.json --force
+
+      - name: Build backend
+        run: npm --workspace backend run build
+
+      - name: Build admin
+        run: npm --workspace admin run build
+
+      - name: Build frontend
+        run: npm --workspace frontend run build
+
+      - name: Typecheck mobile
+        run: npm --workspace mobile exec -- tsc --noEmit
+
+  backend-e2e:
+    runs-on: ubuntu-latest
+    needs: build-and-typecheck
+    if: ${{ secrets.DATABASE_URL != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - test:e2e:admin-flow
+          - test:e2e:permission-guard
+          - test:e2e:market-public
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL_DAYS: 14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma db push
+        working-directory: backend
+        run: npx prisma db push
+
+      - name: Run backend E2E
+        run: npm --workspace backend run ${{ matrix.script }}

@@ -1,0 +1,320 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════
+   GnnDEX · Obsidian Blue Premium Design System
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --font-sans: "Inter", "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Sora", "Inter", "Pretendard", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+
+  /* ── Light Theme ── */
+  --background: 220 20% 97%;
+  --foreground: 224 71% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 71% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 8%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 224 71% 8%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
+  --radius: 0.75rem;
+
+  /* Exchange semantic */
+  --exchange-buy: 158 64% 42%;
+  --exchange-sell: 0 72% 51%;
+  --exchange-up: 158 64% 42%;
+  --exchange-down: 0 72% 51%;
+  --exchange-surface: 0 0% 100%;
+  --exchange-surface-2: 220 20% 97%;
+  --exchange-surface-3: 220 14% 95%;
+
+  /* Premium */
+  --gold: 43 96% 56%;
+}
+
+.dark {
+  --background: 225 51% 4%;
+  --foreground: 213 31% 94%;
+  --card: 224 47% 7%;
+  --card-foreground: 213 31% 94%;
+  --popover: 224 47% 7%;
+  --popover-foreground: 213 31% 94%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 224 40% 11%;
+  --secondary-foreground: 213 31% 94%;
+  --muted: 224 40% 11%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 262 83% 68%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 224 30% 13%;
+  --input: 224 30% 13%;
+  --ring: 217 91% 60%;
+
+  --exchange-buy: 158 64% 47%;
+  --exchange-sell: 0 72% 56%;
+  --exchange-up: 158 64% 47%;
+  --exchange-down: 0 72% 56%;
+  --exchange-surface: 224 47% 7%;
+  --exchange-surface-2: 224 47% 9%;
+  --exchange-surface-3: 224 47% 11%;
+
+  --gold: 43 96% 56%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    font-family: var(--font-sans);
+    @apply bg-background text-foreground antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-border; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }
+}
+
+/* ── App backgrounds ── */
+.app-grid-bg {
+  min-height: 100vh;
+  background: hsl(var(--background));
+}
+.dark .app-grid-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, hsl(217 91% 60% / 0.07), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, hsl(262 83% 58% / 0.05), transparent),
+    hsl(var(--background));
+}
+:root:not(.dark) .app-grid-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(221 83% 53% / 0.04), transparent),
+    hsl(var(--background));
+}
+
+@layer components {
+  /* ── Cards ── */
+  .panel {
+    @apply rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow;
+  }
+  .panel-hover:hover {
+    @apply shadow-md;
+  }
+  .panel-glass {
+    @apply rounded-xl border border-border/50 p-5 shadow-sm backdrop-blur-xl;
+    background: hsl(var(--card) / 0.8);
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-secondary active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-muted {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-muted active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-[0.98];
+  }
+  .btn-buy {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-[0.98];
+    background-color: hsl(var(--exchange-buy));
+  }
+  .btn-buy:hover { filter: brightness(1.1); }
+  .btn-sell {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-[0.98];
+    background-color: hsl(var(--exchange-sell));
+  }
+  .btn-sell:hover { filter: brightness(1.1); }
+
+  /* ── Exchange colors ── */
+  .text-up { color: hsl(var(--exchange-up)); }
+  .text-down { color: hsl(var(--exchange-down)); }
+  .bg-surface-2 { background-color: hsl(var(--exchange-surface-2)); }
+  .bg-surface-3 { background-color: hsl(var(--exchange-surface-3)); }
+  .text-gold { color: hsl(var(--gold)); }
+
+  /* ── Input fields ── */
+  .input-field {
+    @apply w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors;
+  }
+
+  /* ── Status badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-success {
+    @apply badge;
+    background: hsl(var(--exchange-buy) / 0.12);
+    color: hsl(var(--exchange-buy));
+  }
+  .badge-danger {
+    @apply badge;
+    background: hsl(var(--exchange-sell) / 0.12);
+    color: hsl(var(--exchange-sell));
+  }
+  .badge-warning {
+    @apply badge bg-amber-500/10 text-amber-500;
+  }
+  .badge-info {
+    @apply badge bg-primary/10 text-primary;
+  }
+  .badge-muted {
+    @apply badge bg-muted text-muted-foreground;
+  }
+}
+
+/* ── Animations ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.5s ease-out both; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 0.4s ease-out both; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+@keyframes ticker-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-marquee {
+  animation: ticker-marquee 40s linear infinite;
+  will-change: transform;
+}
+.ticker-marquee:hover { animation-play-state: paused; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.3s ease-out; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-count-up { animation: count-up 0.6s ease-out both; }
+
+@keyframes orderbook-depth-flow {
+  0% { background-position: 0% 50%; opacity: 0.7; }
+  50% { background-position: 100% 50%; opacity: 1; }
+  100% { background-position: 0% 50%; opacity: 0.7; }
+}
+
+.orderbook-depth-bar {
+  background-size: 200% 100%;
+  animation: orderbook-depth-flow 2.4s linear infinite;
+  transition: width 0.35s ease;
+  will-change: width, background-position;
+}
+
+.orderbook-depth-buy {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--exchange-buy) / 0.04) 0%,
+    hsl(var(--exchange-buy) / 0.16) 45%,
+    hsl(var(--exchange-buy) / 0.24) 55%,
+    hsl(var(--exchange-buy) / 0.08) 100%
+  );
+}
+
+.orderbook-depth-sell {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--exchange-sell) / 0.04) 0%,
+    hsl(var(--exchange-sell) / 0.16) 45%,
+    hsl(var(--exchange-sell) / 0.24) 55%,
+    hsl(var(--exchange-sell) / 0.08) 100%
+  );
+}
+
+/* ── Utility ── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.glass {
+  @apply border-border/50 backdrop-blur-xl;
+  background: hsl(var(--card) / 0.7);
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+}
+
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.hero-glow {
+  position: relative;
+}
+.hero-glow::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.12), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}

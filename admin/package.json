@@ -1,0 +1,27 @@
+{
+  "name": "admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --port 8080 --strictPort",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 8080 --strictPort",
+    "lint": "echo \"No admin lint configured yet\"",
+    "test": "echo \"No admin tests configured yet\""
+  },
+  "dependencies": {
+    "@gnndex/api-client": "*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}

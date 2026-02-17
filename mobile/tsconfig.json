@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["react"],
+    "baseUrl": ".",
+    "paths": {
+      "react": ["./node_modules/@types/react"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ]
+  },
+  "include": ["App.tsx", "src"]
+}

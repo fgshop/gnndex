@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+/.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+.expo/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test & Coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Prisma
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/prisma/migrations/**/migration_lock.toml
+
+# Docker
+docker-data/
+
+# Mobile (React Native / Expo)
+mobile/.expo/
+mobile/ios/Pods/
+mobile/android/.gradle/
+mobile/android/app/build/
+
+# Watch (Kotlin / Gradle)
+watch/.gradle/
+watch/build/
+watch/app/build/
+
+# Firmware
+firmware/build/
+firmware/*.o
+firmware/*.elf
+firmware/*.bin
+firmware/*.hex
+
+# Misc
+*.tsbuildinfo
+.vercel

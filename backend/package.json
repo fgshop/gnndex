@@ -1,0 +1,56 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "NODE_ENV=production PORT=4000 node dist/main.js",
+    "dev": "NODE_ENV=development PORT=4000 nest start --watch",
+    "start:dev": "NODE_ENV=development PORT=4000 nest start --watch",
+    "build": "nest build",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed",
+    "prisma:studio": "prisma studio",
+    "admin:promote": "ts-node scripts/promote-admin.ts",
+    "admin:bootstrap": "ts-node scripts/bootstrap-admin.ts",
+    "test:e2e:admin-flow": "ts-node scripts/e2e-admin-flow.ts",
+    "test:e2e:admin-dashboard-overview": "ts-node scripts/e2e-admin-dashboard-overview.ts",
+    "test:e2e:admin-dashboard-share-link": "ts-node scripts/e2e-admin-dashboard-share-link.ts",
+    "test:e2e:permission-guard": "ts-node scripts/e2e-permission-guard.ts",
+    "test:e2e:market-public": "ts-node scripts/e2e-market-public.ts",
+    "lint": "echo \"No backend lint configured yet\"",
+    "test": "echo \"No backend tests configured yet\""
+  },
+  "prisma": {
+    "seed": "ts-node --transpile-only prisma/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.5.0",
+    "@prisma/client": "^6.2.1",
+    "bcryptjs": "^2.4.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "otplib": "^12.0.1",
+    "passport": "^0.7.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.10.1",
+    "prisma": "^6.2.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.2"
+  }
+}

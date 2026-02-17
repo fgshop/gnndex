@@ -1,0 +1,25 @@
+{
+  "name": "gnndex",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "admin",
+    "mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:backend": "npm --workspace backend run start:dev",
+    "dev:admin": "npm --workspace admin run dev",
+    "dev:mobile": "npm --workspace mobile run start",
+    "check:i18n": "node tools/check-i18n.mjs",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
