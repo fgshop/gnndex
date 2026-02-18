@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { createHash } from "crypto";
 import { Prisma, WalletLedgerEntryType, WithdrawalStatus } from "@prisma/client";
 import { Observable, catchError, from, map, of, switchMap, timer } from "rxjs";
 import { AuditService } from "../audit/audit.service";
 import { PrismaService } from "../database/prisma.service";
+import { getCoinConfig, getDefaultNetwork, getNetworkConfig, COIN_NETWORK_CONFIG } from "./coin-network.config";
 import { AdjustBalanceDto } from "./dto/adjust-balance.dto";
+import { CreateWalletDto } from "./dto/create-wallet.dto";
 import { ListMyWithdrawalsQueryDto } from "./dto/list-my-withdrawals.dto";
 import { RequestWithdrawalDto } from "./dto/request-withdrawal.dto";
 import { StreamBalancesQueryDto } from "./dto/stream-balances.dto";
@@ -18,6 +21,7 @@ type StreamBalancesEvent = {
         asset: string;
         available: string;
         locked: string;
+        depositAddress: string | null;
       }>
     | { message: string };
 };
@@ -50,8 +54,117 @@ export class WalletService {
     return balances.map((item) => ({
       asset: item.asset,
       available: item.available.toString(),
-      locked: item.locked.toString()
+      locked: item.locked.toString(),
+      depositAddress: item.depositAddress ?? null,
     }));
+  }
+
+  async createWallet(userId: string, input: CreateWalletDto) {
+    const asset = input.asset.toUpperCase();
+    const coinConfig = getCoinConfig(asset);
+
+    if (!coinConfig) {
+      throw new BadRequestException(`Unsupported asset: ${asset}`);
+    }
+
+    // Resolve network
+    let resolvedNetwork: string;
+    if (coinConfig.type === "native") {
+      resolvedNetwork = coinConfig.networks[0].network;
+    } else {
+      if (!input.network) {
+        throw new BadRequestException(
+          `Network is required for ${asset}. Supported: ${coinConfig.networks.map((n) => n.network).join(", ")}`
+        );
+      }
+      const networkCfg = getNetworkConfig(asset, input.network);
+      if (!networkCfg) {
+        throw new BadRequestException(
+          `Unsupported network "${input.network}" for ${asset}. Supported: ${coinConfig.networks.map((n) => n.network).join(", ")}`
+        );
+      }
+      resolvedNetwork = networkCfg.network;
+    }
+
+    const existing = await this.prisma.walletBalance.findUnique({
+      where: { userId_asset: { userId, asset } },
+    });
+
+    if (existing) {
+      const depositAddress =
+        existing.depositAddress ?? this.generateDepositAddress(userId, asset, resolvedNetwork);
+
+      if (!existing.depositAddress) {
+        await this.prisma.walletBalance.update({
+          where: { id: existing.id },
+          data: { depositAddress },
+        });
+      }
+
+      return {
+        asset: existing.asset,
+        network: resolvedNetwork,
+        available: existing.available.toString(),
+        locked: existing.locked.toString(),
+        depositAddress,
+      };
+    }
+
+    const depositAddress = this.generateDepositAddress(userId, asset, resolvedNetwork);
+
+    const created = await this.prisma.walletBalance.create({
+      data: {
+        userId,
+        asset,
+        available: "0",
+        locked: "0",
+        depositAddress,
+      },
+    });
+
+    return {
+      asset: created.asset,
+      network: resolvedNetwork,
+      available: created.available.toString(),
+      locked: created.locked.toString(),
+      depositAddress,
+    };
+  }
+
+  getNetworkConfig() {
+    return COIN_NETWORK_CONFIG.map((coin) => ({
+      asset: coin.asset,
+      name: coin.name,
+      type: coin.type,
+      networks: coin.networks.map((n) => ({
+        network: n.network,
+        displayName: n.displayName,
+        confirmations: n.confirmations,
+        minDeposit: n.minDeposit,
+        withdrawFee: n.withdrawFee,
+      })),
+    }));
+  }
+
+  private generateDepositAddress(userId: string, asset: string, network: string): string {
+    const secret = process.env.JWT_ACCESS_SECRET ?? "gnndex";
+    const hash = createHash("sha256")
+      .update(`${userId}:${asset}:${network}:${secret}`)
+      .digest("hex");
+
+    const networkCfg = getNetworkConfig(asset, network) ?? getDefaultNetwork(asset);
+    if (!networkCfg) {
+      return "0x" + hash.substring(0, 40);
+    }
+
+    const { addressPrefix, addressLength } = networkCfg;
+
+    if (addressPrefix === "") {
+      // Base58-like (Solana, etc.) — use hex as-is, trimmed to length
+      return hash.substring(0, addressLength);
+    }
+
+    return addressPrefix + hash.substring(0, addressLength);
   }
 
   streamBalances(userId: string, query: StreamBalancesQueryDto): Observable<StreamBalancesEvent> {
@@ -307,6 +420,57 @@ export class WalletService {
         amount: input.amount,
         reason: input.reason ?? null
       }
+    });
+
+    return result;
+  }
+
+  async simulateDeposit(userId: string, asset: string, amount: string) {
+    const delta = new Prisma.Decimal(amount);
+    if (delta.lte(0)) {
+      throw new BadRequestException("Amount must be positive");
+    }
+
+    const coinCfg = getCoinConfig(asset);
+    if (!coinCfg) {
+      throw new BadRequestException(`Unsupported asset: ${asset}`);
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.walletBalance.findUnique({
+        where: { userId_asset: { userId, asset } },
+      });
+
+      if (!existing) {
+        throw new BadRequestException("Wallet not found. Create a wallet first.");
+      }
+
+      const balanceBefore = existing.available;
+      const balanceAfter = balanceBefore.add(delta);
+
+      const updated = await tx.walletBalance.update({
+        where: { id: existing.id },
+        data: { available: balanceAfter },
+      });
+
+      await tx.walletLedger.create({
+        data: {
+          userId,
+          asset,
+          entryType: WalletLedgerEntryType.DEPOSIT,
+          amount: delta,
+          balanceBefore,
+          balanceAfter,
+          referenceType: "SIMULATED_DEPOSIT",
+          referenceId: null,
+        },
+      });
+
+      return {
+        asset: updated.asset,
+        available: updated.available.toString(),
+        locked: updated.locked.toString(),
+      };
     });
 
     return result;

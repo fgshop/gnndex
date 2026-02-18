@@ -19,6 +19,7 @@ import {
   type WalletTab,
   type PortfolioItem,
   type MessageState,
+  type CoinNetworkInfo,
   WALLET_TABS,
   PORTFOLIO_COLORS,
   resolveWalletTab,
@@ -50,9 +51,14 @@ export function WalletPanel() {
   const { isReady, isAuthenticated } = useAuth();
   const { t } = useTranslation();
 
+  /* ── Listed coins type ── */
+  type ListedCoin = { symbol: string; baseAsset: string; quoteAsset: string; chartSource: string; isActive: boolean };
+
   /* ── Core state ── */
   const [balances, setBalances] = useState<BalanceRow[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
+  const [listedCoins, setListedCoins] = useState<ListedCoin[]>([]);
+  const [networkConfig, setNetworkConfig] = useState<CoinNetworkInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [balancesStreamConnected, setBalancesStreamConnected] = useState(false);
   const [balancesStreamRetryInfo, setBalancesStreamRetryInfo] = useState<SseRetryInfo | null>(null);
@@ -61,10 +67,12 @@ export function WalletPanel() {
   /* ── Tab navigation ── */
   const activeTab = resolveWalletTab(searchParams.get("tab"));
 
-  const navigateToTab = useCallback((tab: WalletTab) => {
+  const navigateToTab = useCallback((tab: WalletTab, opts?: { asset?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "overview") params.delete("tab");
     else params.set("tab", tab);
+    if (opts?.asset) params.set("asset", opts.asset);
+    else params.delete("asset");
     const queryString = params.toString();
     const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
     router.replace(nextUrl, { scroll: false });
@@ -75,9 +83,11 @@ export function WalletPanel() {
     if (!options?.background) setLoading(true);
     setMessage({ text: "", type: "info" });
 
-    const [balancesRes, withdrawalsRes] = await Promise.all([
+    const [balancesRes, withdrawalsRes, listedCoinsRes, networksRes] = await Promise.all([
       api.GET("/wallet/balances"),
       api.GET("/wallet/withdrawals", { params: { query: { limit: 50 } } }),
+      api.GET("/market/listed-coins"),
+      api.GET("/wallet/networks"),
     ]);
 
     if (!options?.background) setLoading(false);
@@ -89,6 +99,12 @@ export function WalletPanel() {
 
     setBalances(toBalanceRows(balancesRes.data));
     setWithdrawals(toWithdrawalRows(withdrawalsRes.data));
+    if (listedCoinsRes.data && Array.isArray(listedCoinsRes.data)) {
+      setListedCoins(listedCoinsRes.data as ListedCoin[]);
+    }
+    if (networksRes.data && Array.isArray(networksRes.data)) {
+      setNetworkConfig(networksRes.data as CoinNetworkInfo[]);
+    }
   }, [t]);
 
   useEffect(() => {
@@ -198,6 +214,21 @@ export function WalletPanel() {
     void startStream();
     return () => { isActive = false; controller.abort(); setBalancesStreamConnected(false); setBalancesStreamRetryInfo(null); };
   }, [isAuthenticated, t]);
+
+  /* ── Create wallet ── */
+  const createWallet = useCallback(async (asset: string, network?: string) => {
+    const body: { asset: string; network?: string } = { asset };
+    if (network) body.network = network;
+    const { error } = await api.POST("/wallet/wallets", { body });
+    if (error) {
+      setMessage({ text: parseApiError(error, t("wallet.loadFailed")), type: "error" });
+      return;
+    }
+    await loadWallet({ background: true });
+  }, [loadWallet, t]);
+
+  /* ── URL params ── */
+  const initialAsset = searchParams.get("asset") ?? undefined;
 
   /* ── Polling fallback ── */
   useEffect(() => {
@@ -384,11 +415,24 @@ export function WalletPanel() {
       )}
 
       {activeTab === "assets" && (
-        <WalletAssetsTab balances={balances} navigateToTab={navigateToTab} />
+        <WalletAssetsTab
+          balances={balances}
+          listedCoins={listedCoins}
+          navigateToTab={navigateToTab}
+          createWallet={createWallet}
+          networkConfig={networkConfig}
+        />
       )}
 
       {activeTab === "deposit" && (
-        <WalletDepositTab balances={balances} />
+        <WalletDepositTab
+          balances={balances}
+          initialAsset={initialAsset}
+          createWallet={createWallet}
+          networkConfig={networkConfig}
+          setMessage={setMessage}
+          onDeposit={() => void loadWallet()}
+        />
       )}
 
       {activeTab === "withdraw" && (
@@ -396,6 +440,8 @@ export function WalletPanel() {
           balances={balances}
           onWithdraw={() => void loadWallet()}
           setMessage={setMessage}
+          initialAsset={initialAsset}
+          networkConfig={networkConfig}
         />
       )}
 

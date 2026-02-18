@@ -413,6 +413,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/market/listed-coins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get active listed coins */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listed coin list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            symbol: string;
+                            baseAsset: string;
+                            quoteAsset: string;
+                            chartSource: string;
+                            isActive: boolean;
+                        }[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wallet/networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get supported coin/network configurations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Network config list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            asset: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "native" | "token";
+                            networks: {
+                                network: string;
+                                displayName: string;
+                                confirmations: number;
+                                minDeposit: string;
+                                withdrawFee: string;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/wallet/balances": {
         parameters: {
             query?: never;
@@ -435,12 +525,69 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            asset: string;
+                            available: string;
+                            locked: string;
+                            depositAddress: string | null;
+                        }[];
+                    };
                 };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wallet/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create wallet and generate deposit address */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        asset: string;
+                        /** @description Required for multi-network tokens (e.g. USDT) */
+                        network?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Wallet created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            asset: string;
+                            network: string;
+                            available: string;
+                            locked: string;
+                            depositAddress: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +721,60 @@ export interface paths {
             responses: {
                 /** @description Withdrawal requested */
                 201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wallet/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate deposit (development) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        asset: string;
+                        amount: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Deposit simulated */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            asset?: string;
+                            available?: string;
+                            locked?: string;
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };

@@ -5,7 +5,6 @@ import { CoinIcon } from "@/components/coin-icon";
 import { useTranslation } from "@/i18n/locale-context";
 import {
   type BalanceRow,
-  AVAILABLE_ASSETS,
   COIN_NAMES,
   ChevronDown,
   coinName,
@@ -157,7 +156,7 @@ function AssetSelector({
   label: string;
 }) {
   const [open, setOpen] = useState(false);
-  const assets = AVAILABLE_ASSETS.filter((a) => a !== exclude);
+  const assets = Object.keys(COIN_NAMES).filter((a) => a !== exclude);
 
   return (
     <div className="relative">

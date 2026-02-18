@@ -6,6 +6,7 @@ import { useTranslation } from "@/i18n/locale-context";
 import {
   type BalanceRow,
   type WalletTab,
+  type CoinNetworkInfo,
   coinName,
   toNumber,
   formatAmount,
@@ -15,12 +16,25 @@ import {
 } from "@/features/wallet/wallet-shared";
 
 /* ═══════════════════════════════════════════════════════════
-   Props
+   Types
    ═══════════════════════════════════════════════════════════ */
+
+type ListedCoin = { symbol: string; baseAsset: string; quoteAsset: string; chartSource: string; isActive: boolean };
 
 type WalletAssetsTabProps = {
   balances: BalanceRow[];
-  navigateToTab: (tab: WalletTab) => void;
+  listedCoins: ListedCoin[];
+  navigateToTab: (tab: WalletTab, opts?: { asset?: string }) => void;
+  createWallet: (asset: string, network?: string) => Promise<void>;
+  networkConfig: CoinNetworkInfo[];
+};
+
+type MergedRow = {
+  asset: string;
+  available: string;
+  locked: string;
+  hasWallet: boolean;
+  depositAddress?: string | null;
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -30,7 +44,7 @@ type WalletAssetsTabProps = {
 type SortKey = "asset" | "available" | "locked" | "total" | "value";
 type SortDir = "asc" | "desc";
 
-function compareRows(a: BalanceRow, b: BalanceRow, key: SortKey, dir: SortDir): number {
+function compareMergedRows(a: MergedRow, b: MergedRow, key: SortKey, dir: SortDir): number {
   let result = 0;
   switch (key) {
     case "asset":
@@ -42,16 +56,11 @@ function compareRows(a: BalanceRow, b: BalanceRow, key: SortKey, dir: SortDir): 
     case "locked":
       result = toNumber(a.locked) - toNumber(b.locked);
       break;
-    case "total": {
+    case "total":
+    case "value": {
       const totalA = toNumber(a.available) + toNumber(a.locked);
       const totalB = toNumber(b.available) + toNumber(b.locked);
       result = totalA - totalB;
-      break;
-    }
-    case "value": {
-      const valA = toNumber(a.available) + toNumber(a.locked);
-      const valB = toNumber(b.available) + toNumber(b.locked);
-      result = valA - valB;
       break;
     }
   }
@@ -81,7 +90,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
    Component
    ═══════════════════════════════════════════════════════════ */
 
-export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProps) {
+export function WalletAssetsTab({ balances, listedCoins, navigateToTab, createWallet, networkConfig }: WalletAssetsTabProps) {
   const { t } = useTranslation();
 
   /* ── Local state ── */
@@ -89,6 +98,7 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
   const [hideZero, setHideZero] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("total");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [creatingAsset, setCreatingAsset] = useState<string | null>(null);
 
   /* ── Sort toggle handler ── */
   const handleSort = (key: SortKey) => {
@@ -100,9 +110,36 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
     }
   };
 
+  /* ── Merge listed coins with balances ── */
+  const mergedRows = useMemo<MergedRow[]>(() => {
+    const balanceMap = new Map(balances.map((b) => [b.asset, b]));
+
+    // Collect unique base assets from listed coins + quote assets
+    const assetSet = new Set<string>();
+    for (const coin of listedCoins) {
+      assetSet.add(coin.baseAsset);
+      assetSet.add(coin.quoteAsset);
+    }
+    // Also include any assets from balances that may not be in listed coins
+    for (const b of balances) {
+      assetSet.add(b.asset);
+    }
+
+    return Array.from(assetSet).map((asset) => {
+      const balance = balanceMap.get(asset);
+      return {
+        asset,
+        available: balance?.available ?? "0",
+        locked: balance?.locked ?? "0",
+        hasWallet: !!balance,
+        depositAddress: balance?.depositAddress,
+      };
+    });
+  }, [balances, listedCoins]);
+
   /* ── Filtered & sorted rows ── */
-  const filteredBalances = useMemo(() => {
-    let result = [...balances];
+  const filteredRows = useMemo(() => {
+    let result = [...mergedRows];
     if (hideZero) {
       result = result.filter((b) => toNumber(b.available) > 0 || toNumber(b.locked) > 0);
     }
@@ -112,9 +149,21 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
         (b) => b.asset.toLowerCase().includes(q) || coinName(b.asset).toLowerCase().includes(q),
       );
     }
-    result.sort((a, b) => compareRows(a, b, sortKey, sortDir));
+    result.sort((a, b) => compareMergedRows(a, b, sortKey, sortDir));
     return result;
-  }, [balances, hideZero, search, sortKey, sortDir]);
+  }, [mergedRows, hideZero, search, sortKey, sortDir]);
+
+  /* ── Create wallet handler ── */
+  const handleCreateWallet = async (asset: string) => {
+    const coinCfg = networkConfig.find(c => c.asset === asset);
+    setCreatingAsset(asset);
+    if (coinCfg?.type === "token") {
+      await createWallet(asset, coinCfg.networks[0]?.network);
+    } else {
+      await createWallet(asset);
+    }
+    setCreatingAsset(null);
+  };
 
   /* ── Column definitions ── */
   const columns: Array<{ key: SortKey; labelKey: string; align: string; hideOn?: string }> = [
@@ -176,7 +225,7 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
                   </th>
                 ))}
                 {/* Actions column */}
-                <th className="hidden px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("wallet.colActions")}
                 </th>
               </tr>
@@ -184,7 +233,7 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
 
             {/* Body */}
             <tbody className="divide-y divide-border/50">
-              {filteredBalances.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10">
                     <SectionEmptyState
@@ -199,8 +248,9 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
                   </td>
                 </tr>
               ) : (
-                filteredBalances.map((item) => {
+                filteredRows.map((item) => {
                   const total = toNumber(item.available) + toNumber(item.locked);
+                  const isCreating = creatingAsset === item.asset;
                   return (
                     <tr key={item.asset} className="group transition-colors hover:bg-muted/30">
                       {/* Asset */}
@@ -216,46 +266,66 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
 
                       {/* Available */}
                       <td className="px-4 py-3.5 text-right font-[var(--font-mono)] text-sm text-foreground">
-                        {formatAmount(item.available, 6)}
+                        {item.hasWallet ? formatAmount(item.available, 6) : <span className="text-muted-foreground">--</span>}
                       </td>
 
                       {/* In Orders */}
                       <td className="hidden px-4 py-3.5 text-right font-[var(--font-mono)] text-sm text-muted-foreground sm:table-cell">
-                        {formatAmount(item.locked, 6)}
+                        {item.hasWallet ? formatAmount(item.locked, 6) : <span>--</span>}
                       </td>
 
                       {/* Total */}
                       <td className="px-4 py-3.5 text-right font-[var(--font-mono)] text-sm font-semibold text-foreground">
-                        {formatAmount(String(total), 6)}
+                        {item.hasWallet ? formatAmount(String(total), 6) : <span className="text-muted-foreground">--</span>}
                       </td>
 
                       {/* USDT Value */}
                       <td className="hidden px-4 py-3.5 text-right font-[var(--font-mono)] text-sm text-muted-foreground md:table-cell">
-                        {formatUsd(total)}
+                        {item.hasWallet ? formatUsd(total) : "--"}
                       </td>
 
                       {/* Row Actions */}
-                      <td className="hidden px-4 py-3.5 text-right lg:table-cell">
-                        <div className="inline-flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <td className="px-4 py-3.5 text-right">
+                        {item.hasWallet ? (
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => navigateToTab("deposit", { asset: item.asset })}
+                              className="btn-ghost !px-2.5 !py-1 !text-xs"
+                              title={t("wallet.quickDeposit")}
+                            >
+                              <TabIcon type="download" className="h-3.5 w-3.5" />
+                              <span className="ml-1 hidden sm:inline">{t("wallet.tab.deposit")}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigateToTab("withdraw", { asset: item.asset })}
+                              className="btn-ghost !px-2.5 !py-1 !text-xs"
+                              title={t("wallet.quickWithdraw")}
+                            >
+                              <TabIcon type="send" className="h-3.5 w-3.5" />
+                              <span className="ml-1 hidden sm:inline">{t("wallet.tab.withdraw")}</span>
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => navigateToTab("deposit")}
-                            className="btn-ghost !px-2.5 !py-1 !text-xs"
-                            title={t("wallet.quickDeposit")}
+                            onClick={() => void handleCreateWallet(item.asset)}
+                            disabled={isCreating}
+                            className="btn-primary !px-3 !py-1 !text-xs"
                           >
-                            <TabIcon type="download" className="h-3.5 w-3.5" />
-                            <span className="ml-1">{t("wallet.tab.deposit")}</span>
+                            {isCreating ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <TabIcon type="wallet" className="h-3.5 w-3.5" />
+                                <span>{t("wallet.createWallet")}</span>
+                              </span>
+                            )}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => navigateToTab("withdraw")}
-                            className="btn-ghost !px-2.5 !py-1 !text-xs"
-                            title={t("wallet.quickWithdraw")}
-                          >
-                            <TabIcon type="send" className="h-3.5 w-3.5" />
-                            <span className="ml-1">{t("wallet.tab.withdraw")}</span>
-                          </button>
-                        </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -267,13 +337,13 @@ export function WalletAssetsTab({ balances, navigateToTab }: WalletAssetsTabProp
       </div>
 
       {/* ── Summary Footer ── */}
-      {filteredBalances.length > 0 && (
+      {filteredRows.length > 0 && (
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            {t("wallet.showingAssets", { count: String(filteredBalances.length), total: String(balances.length) })}
+            {t("wallet.showingAssets", { count: String(filteredRows.length), total: String(mergedRows.length) })}
           </span>
           <span className="font-[var(--font-mono)] font-medium text-foreground">
-            {t("wallet.colTotal")}: {formatUsd(filteredBalances.reduce((acc, b) => acc + toNumber(b.available) + toNumber(b.locked), 0))}
+            {t("wallet.colTotal")}: {formatUsd(filteredRows.reduce((acc, b) => acc + toNumber(b.available) + toNumber(b.locked), 0))}
           </span>
         </div>
       )}

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GnnDEX API
-  version: 1.17.0
+  version: 1.18.0
   description: GnnDEX trading exchange backend API v1 draft.
 servers:
   - url: http://localhost:4000/v1
@@ -217,6 +217,69 @@ paths:
       responses:
         "200":
           description: Candle list
+  /market/listed-coins:
+    get:
+      tags: [market]
+      summary: Get active listed coins
+      responses:
+        "200":
+          description: Listed coin list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [symbol, baseAsset, quoteAsset, chartSource, isActive]
+                  properties:
+                    symbol:
+                      type: string
+                    baseAsset:
+                      type: string
+                    quoteAsset:
+                      type: string
+                    chartSource:
+                      type: string
+                    isActive:
+                      type: boolean
+  /wallet/networks:
+    get:
+      tags: [wallet]
+      summary: Get supported coin/network configurations
+      responses:
+        "200":
+          description: Network config list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [asset, name, type, networks]
+                  properties:
+                    asset:
+                      type: string
+                    name:
+                      type: string
+                    type:
+                      type: string
+                      enum: [native, token]
+                    networks:
+                      type: array
+                      items:
+                        type: object
+                        required: [network, displayName, confirmations, minDeposit, withdrawFee]
+                        properties:
+                          network:
+                            type: string
+                          displayName:
+                            type: string
+                          confirmations:
+                            type: integer
+                          minDeposit:
+                            type: string
+                          withdrawFee:
+                            type: string
   /wallet/balances:
     get:
       tags: [wallet]
@@ -224,6 +287,59 @@ paths:
       responses:
         "200":
           description: Balance list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [asset, available, locked, depositAddress]
+                  properties:
+                    asset:
+                      type: string
+                    available:
+                      type: string
+                    locked:
+                      type: string
+                    depositAddress:
+                      type: string
+                      nullable: true
+  /wallet/wallets:
+    post:
+      tags: [wallet]
+      summary: Create wallet and generate deposit address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asset]
+              properties:
+                asset:
+                  type: string
+                network:
+                  type: string
+                  description: Required for multi-network tokens (e.g. USDT)
+      responses:
+        "201":
+          description: Wallet created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [asset, network, available, locked, depositAddress]
+                properties:
+                  asset:
+                    type: string
+                  network:
+                    type: string
+                  available:
+                    type: string
+                  locked:
+                    type: string
+                  depositAddress:
+                    type: string
   /wallet/stream/balances:
     get:
       tags: [wallet]
@@ -297,6 +413,38 @@ paths:
       responses:
         "201":
           description: Withdrawal requested
+  /wallet/deposit:
+    post:
+      tags: [wallet]
+      summary: Simulate deposit (development)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asset, amount]
+              properties:
+                asset:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        "201":
+          description: Deposit simulated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  asset:
+                    type: string
+                  available:
+                    type: string
+                  locked:
+                    type: string
+        "400":
+          description: Invalid request
   /wallet/admin-adjust:
     post:
       tags: [wallet]

@@ -23,8 +23,8 @@ function FooterColumn({ title, links }: { title: string; links: ReadonlyArray<{ 
     <section>
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <ul className="mt-4 space-y-2.5">
-        {links.map((l) => (
-          <li key={l.href}>
+        {links.map((l, idx) => (
+          <li key={`${l.href}-${idx}`}>
             <Link className="text-sm text-muted-foreground transition-colors hover:text-foreground" href={l.href}>
               {l.label}
             </Link>

@@ -208,15 +208,17 @@ export default function TradePage() {
   const [marketListError, setMarketListError] = useState("");
   const [marketSearch, setMarketSearch] = useState("");
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
-  const [orderbookSearch, setOrderbookSearch] = useState("");
-  const [orderbookSearchOpen, setOrderbookSearchOpen] = useState(false);
+  const [marketTab, setMarketTab] = useState<"FAVORITES" | "ALL">("ALL");
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   /* ─── Order form state ─── */
-  const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [pctSelected, setPctSelected] = useState<number | null>(null);
+  const [stopPrice, setStopPrice] = useState("");
+  const [buyQuantity, setBuyQuantity] = useState("");
+  const [sellQuantity, setSellQuantity] = useState("");
+  const [buyPctSelected, setBuyPctSelected] = useState<number | null>(null);
+  const [sellPctSelected, setSellPctSelected] = useState<number | null>(null);
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
   const [balances, setBalances] = useState<BalanceRow[]>([]);
@@ -242,9 +244,9 @@ export default function TradePage() {
   const [historyTab, setHistoryTab] = useState<OrderHistoryTab>("OPEN");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const orderbookSearchRef = useRef<HTMLDivElement>(null);
   const orderHistoryRef = useRef<HTMLDivElement>(null);
-  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const buyQuantityInputRef = useRef<HTMLInputElement>(null);
+  const sellQuantityInputRef = useRef<HTMLInputElement>(null);
 
   /* ═══════════════════════════════════════════════════════════════
      Data Loading
@@ -421,6 +423,14 @@ export default function TradePage() {
     if (qs && isSupported(qs)) setSymbol(qs);
   }, []);
 
+  /* ─── Favorites persistence ─── */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("gnndex_favorites");
+      if (stored) setFavorites(new Set(JSON.parse(stored) as string[]));
+    } catch { /* ignore */ }
+  }, []);
+
   /* ─── Orders SSE stream ─── */
   useEffect(() => {
     if (!isAuthenticated) {
@@ -483,9 +493,6 @@ export default function TradePage() {
     function handler(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setMarketDropdownOpen(false);
-      }
-      if (orderbookSearchRef.current && !orderbookSearchRef.current.contains(e.target as Node)) {
-        setOrderbookSearchOpen(false);
       }
     }
     document.addEventListener("mousedown", handler);
@@ -581,15 +588,9 @@ export default function TradePage() {
     });
   }, [marketRows, marketSearch]);
 
-  const orderbookFilteredMarkets = useMemo(() => {
-    const q = orderbookSearch.trim().toUpperCase();
-    if (!q) return [];
-    return marketRows.filter((r) => {
-      const p = split(r.symbol);
-      if (p.quote !== "USDT") return false;
-      return r.symbol.includes(q) || p.base.includes(q);
-    });
-  }, [marketRows, orderbookSearch]);
+  const favoriteMarkets = useMemo(() => {
+    return filteredMarkets.filter((r) => favorites.has(r.symbol));
+  }, [favorites, filteredMarkets]);
 
   /* Filter orders by tab */
   const filteredOrders = useMemo(() => {
@@ -615,25 +616,36 @@ export default function TradePage() {
     [balanceMap, pair.base]
   );
 
-  const availableAsset = side === "BUY" ? (pair.quote || "USDT") : pair.base;
-  const availableAmount = side === "BUY" ? availableQuote : availableBase;
-
   const effectivePrice = useMemo(() => {
+    if (orderType === "MARKET") {
+      const current = toNum(currentPrice);
+      return current && current > 0 ? current : null;
+    }
     const p = toNum(price);
     if (p && p > 0) return p;
     const current = toNum(currentPrice);
     return current && current > 0 ? current : null;
-  }, [currentPrice, price]);
+  }, [currentPrice, orderType, price]);
 
-  const quantityNum = useMemo(() => {
-    const q = toNum(quantity);
+  const buyQuantityNum = useMemo(() => {
+    const q = toNum(buyQuantity);
     return q && q > 0 ? q : 0;
-  }, [quantity]);
+  }, [buyQuantity]);
 
-  const estimatedTotal = useMemo(() => {
-    if (!effectivePrice || !quantityNum) return 0;
-    return effectivePrice * quantityNum;
-  }, [effectivePrice, quantityNum]);
+  const sellQuantityNum = useMemo(() => {
+    const q = toNum(sellQuantity);
+    return q && q > 0 ? q : 0;
+  }, [sellQuantity]);
+
+  const buyEstimatedTotal = useMemo(() => {
+    if (!effectivePrice || !buyQuantityNum) return 0;
+    return effectivePrice * buyQuantityNum;
+  }, [effectivePrice, buyQuantityNum]);
+
+  const sellEstimatedTotal = useMemo(() => {
+    if (!effectivePrice || !sellQuantityNum) return 0;
+    return effectivePrice * sellQuantityNum;
+  }, [effectivePrice, sellQuantityNum]);
 
   const priceTick = useMemo(() => {
     const p = effectivePrice ?? 0;
@@ -662,8 +674,11 @@ export default function TradePage() {
   /* ─── Sync price & URL on symbol change ─── */
   useEffect(() => {
     setPrice("");
-    setQuantity("");
-    setPctSelected(null);
+    setStopPrice("");
+    setBuyQuantity("");
+    setSellQuantity("");
+    setBuyPctSelected(null);
+    setSellPctSelected(null);
     setOrderMessage("");
     const url = new URL(window.location.href);
     if (url.searchParams.get("symbol") !== symbol) {
@@ -684,34 +699,53 @@ export default function TradePage() {
     setPrice(next.toFixed(precision));
   };
 
-  const applyPercentPreset = (pct: (typeof PERCENT_PRESETS)[number]) => {
-    setPctSelected(pct);
+  const onAdjustStopPrice = (direction: -1 | 1) => {
+    const sp = toNum(stopPrice) ?? effectivePrice ?? 0;
+    const next = Math.max(0, sp + direction * priceTick);
+    const precision = priceTick >= 1 ? 0 : (String(priceTick).split(".")[1]?.length ?? 3);
+    setStopPrice(next.toFixed(precision));
+  };
+
+  const applyPercentPreset = (formSide: "BUY" | "SELL", pct: (typeof PERCENT_PRESETS)[number]) => {
     const ratio = pct / 100;
-    if (side === "BUY") {
+    if (formSide === "BUY") {
+      setBuyPctSelected(pct);
       if (!effectivePrice || effectivePrice <= 0) return;
       const spendableQuote = availableQuote * ratio;
       const qty = spendableQuote / effectivePrice;
-      setQuantity(qty > 0 ? qty.toFixed(6) : "0");
+      setBuyQuantity(qty > 0 ? qty.toFixed(6) : "0");
       return;
     }
+    setSellPctSelected(pct);
     const qty = availableBase * ratio;
-    setQuantity(qty > 0 ? qty.toFixed(6) : "0");
+    setSellQuantity(qty > 0 ? qty.toFixed(6) : "0");
   };
 
-  const onSubmitOrder = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmitOrder = async (formSide: "BUY" | "SELL", e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isAuthenticated) { setOrderMessage(t("trade.loginRequired")); return; }
-    const tp = price.trim();
-    const tq = quantity.trim();
+    const tq = (formSide === "BUY" ? buyQuantity : sellQuantity).trim();
     if (!tq) { setOrderMessage(t("trade.enterQuantity")); return; }
-    const submitPrice = tp || (orderType === "MARKET" ? (currentPrice ?? "") : "");
-    if ((orderType === "LIMIT" || orderType === "STOP_LIMIT" || side === "BUY") && !submitPrice) {
-      setOrderMessage(t("trade.priceRequired")); return;
+
+    let submitPrice: string | undefined;
+    if (orderType === "MARKET") {
+      submitPrice = currentPrice ?? undefined;
+    } else if (orderType === "STOP_LIMIT") {
+      const sp = stopPrice.trim();
+      const lp = price.trim();
+      if (!sp) { setOrderMessage("감시가격을 입력하세요."); return; }
+      if (!lp) { setOrderMessage("지정가를 입력하세요."); return; }
+      submitPrice = lp;
+    } else {
+      const tp = price.trim();
+      if (!tp) { setOrderMessage(t("trade.priceRequired")); return; }
+      submitPrice = tp;
     }
+
     setOrderSubmitting(true);
     setOrderMessage("");
     const { data, error } = await api.POST("/orders", {
-      body: { symbol, side, type: orderType, quantity: tq, price: submitPrice || undefined },
+      body: { symbol, side: formSide, type: orderType, quantity: tq, price: submitPrice },
     });
     setOrderSubmitting(false);
     if (error || !data) { setOrderMessage(parseErr(error, t("trade.orderFailed"))); return; }
@@ -732,9 +766,16 @@ export default function TradePage() {
   const selectMarket = (sym: string) => {
     setSymbol(sym);
     setMarketDropdownOpen(false);
-    setOrderbookSearch("");
-    setOrderbookSearchOpen(false);
-    setSide("BUY");
+  };
+
+  const toggleFavorite = (sym: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(sym)) next.delete(sym);
+      else next.add(sym);
+      try { localStorage.setItem("gnndex_favorites", JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
   };
 
   const clickOrderbookPrice = (p: number | null) => {
@@ -791,79 +832,91 @@ export default function TradePage() {
       {/* ════════════ TOP MARKET SELECTOR BAR ════════════ */}
       <div className="border-b border-border bg-card">
         <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
-          {/* Market selector button */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Favorite star + Market selector */}
+          <div className="flex items-center gap-0 border-r border-border">
             <button
               type="button"
-              className="flex items-center gap-3 border-r border-border px-5 py-3 transition hover:bg-secondary"
-              onClick={() => setMarketDropdownOpen(!marketDropdownOpen)}
+              className="pl-4 pr-1 py-3"
+              onClick={() => toggleFavorite(symbol)}
             >
-              <CoinIcon symbol={pair.base} size="lg" />
-              <div className="text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-foreground">{pair.base}</span>
-                  <span className="text-sm text-muted-foreground">/ {pair.quote || "USDT"}</span>
-                </div>
-              </div>
-              <svg className={`h-4 w-4 text-muted-foreground transition-transform ${marketDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <svg className={`w-4 h-4 transition ${favorites.has(symbol) ? "text-gold" : "text-muted-foreground/40 hover:text-gold/60"}`} viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
               </svg>
             </button>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                className="flex items-center gap-3 px-3 py-3 transition hover:bg-secondary"
+                onClick={() => setMarketDropdownOpen(!marketDropdownOpen)}
+              >
+                <CoinIcon symbol={pair.base} size="lg" />
+                <div className="text-left">
+                  <span className="text-lg font-bold text-foreground">{pair.base}</span>
+                  <span className="text-sm text-muted-foreground ml-1">/ {pair.quote || "USDT"}</span>
+                </div>
+              </button>
 
-            {/* Dropdown */}
-            {marketDropdownOpen && (
-              <div className="absolute left-0 top-full z-50 w-[360px] border border-border bg-card shadow-2xl shadow-black/20 rounded-b-xl animate-fade-in">
-                <div className="p-3 border-b border-border">
-                  <input
-                    className="input-field text-sm"
-                    placeholder={t("trade.searchMarkets")}
-                    value={marketSearch}
-                    onChange={(e) => setMarketSearch(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-0 border-b border-border text-[11px] font-semibold text-muted-foreground px-3 py-2">
-                  <span>{t("trade.markets")}</span>
-                  <span className="text-right">{t("trade.price")}</span>
-                  <span className="text-right">{t("trade.24hChange")}</span>
-                  <span className="text-right">{t("trade.volume")}</span>
-                </div>
-                <div className="max-h-[320px] overflow-auto">
-                  {filteredMarkets.length === 0 ? (
-                    <p className="px-3 py-6 text-sm text-muted-foreground text-center">{t("trade.noMarkets")}</p>
-                  ) : (
-                    filteredMarkets.map((row) => {
-                      const rp = split(row.symbol);
-                      const ch = toNum(row.changePercent24h);
-                      const active = row.symbol === symbol;
-                      return (
-                        <button
-                          key={row.symbol}
-                          type="button"
-                          className={`grid w-full grid-cols-4 items-center gap-0 px-3 py-2.5 text-left transition ${
-                            active ? "bg-primary/8" : "hover:bg-secondary"
-                          }`}
-                          onClick={() => selectMarket(row.symbol)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <CoinIcon symbol={rp.base} size="sm" />
-                            <div>
-                              <span className="text-sm font-semibold text-foreground">{rp.base}</span>
-                              <span className="text-[11px] text-muted-foreground">/{rp.quote}</span>
-                            </div>
+              {/* Dropdown */}
+              {marketDropdownOpen && (
+                <div className="absolute left-0 top-full z-50 w-[380px] border border-border bg-card shadow-2xl shadow-black/20 rounded-b-xl animate-fade-in">
+                  <div className="grid grid-cols-[20px_1fr_auto_auto_auto] gap-1 border-b border-border text-[11px] font-semibold text-muted-foreground px-3 py-2">
+                    <span />
+                    <span>{t("trade.markets")}</span>
+                    <span className="text-right min-w-[72px]">{t("trade.price")}</span>
+                    <span className="text-right min-w-[56px]">{t("trade.24hChange")}</span>
+                    <span className="text-right min-w-[52px]">{t("trade.volume")}</span>
+                  </div>
+                  <div className="max-h-[320px] overflow-auto">
+                    {filteredMarkets.length === 0 ? (
+                      <p className="px-3 py-6 text-sm text-muted-foreground text-center">{t("trade.noMarkets")}</p>
+                    ) : (
+                      [...filteredMarkets].sort((a, b) => {
+                        const af = favorites.has(a.symbol) ? 0 : 1;
+                        const bf = favorites.has(b.symbol) ? 0 : 1;
+                        return af - bf;
+                      }).map((row) => {
+                        const rp = split(row.symbol);
+                        const ch = toNum(row.changePercent24h);
+                        const active = row.symbol === symbol;
+                        const isFav = favorites.has(row.symbol);
+                        return (
+                          <div
+                            key={row.symbol}
+                            className={`grid grid-cols-[20px_1fr_auto_auto_auto] gap-1 items-center px-3 py-2.5 transition ${
+                              active ? "bg-primary/8" : "hover:bg-secondary"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              className="flex items-center justify-center"
+                              onClick={() => toggleFavorite(row.symbol)}
+                            >
+                              <svg className={`w-3.5 h-3.5 transition ${isFav ? "text-gold" : "text-muted-foreground/30 hover:text-gold/60"}`} viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 text-left"
+                              onClick={() => selectMarket(row.symbol)}
+                            >
+                              <CoinIcon symbol={rp.base} size="sm" />
+                              <div>
+                                <span className="text-sm font-semibold text-foreground">{rp.base}</span>
+                                <span className="text-[11px] text-muted-foreground">/{rp.quote}</span>
+                              </div>
+                            </button>
+                            <button type="button" className="text-right text-sm font-mono text-foreground min-w-[72px]" onClick={() => selectMarket(row.symbol)}>{fmt(row.lastPrice, 2)}</button>
+                            <button type="button" className={`text-right text-sm font-semibold min-w-[56px] ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`} onClick={() => selectMarket(row.symbol)}>{signPct(ch)}</button>
+                            <button type="button" className="text-right text-xs text-muted-foreground font-mono min-w-[52px]" onClick={() => selectMarket(row.symbol)}>{fmtCompact(row.volume24h)}</button>
                           </div>
-                          <span className="text-right text-sm font-mono text-foreground">{fmt(row.lastPrice, 2)}</span>
-                          <span className={`text-right text-sm font-semibold ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`}>
-                            {signPct(ch)}
-                          </span>
-                          <span className="text-right text-xs text-muted-foreground font-mono">{fmtCompact(row.volume24h)}</span>
-                        </button>
-                      );
-                    })
-                  )}
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Quick stats bar */}
@@ -914,68 +967,12 @@ export default function TradePage() {
 
       {/* ════════════ MAIN TRADING GRID ════════════ */}
       <div
-        className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] xl:grid-cols-[300px_1fr_340px] gap-0 min-h-[860px] overflow-hidden"
-        style={{ height: "clamp(860px, calc(100vh - 48px), 920px)" }}
+        className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] xl:grid-cols-[300px_1fr_340px] gap-0 overflow-hidden"
+        style={{ height: "calc(100vh - 105px)" }}
       >
 
         {/* ════════════ LEFT: ORDERBOOK ════════════ */}
         <div className="border-r border-border bg-card flex flex-col overflow-hidden order-2 lg:order-1">
-          {/* Orderbook search */}
-          <div className="relative shrink-0" ref={orderbookSearchRef}>
-            <div className="px-3 py-2 border-b border-border">
-              <div className="relative">
-                <svg className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  className="input-field text-xs !py-1.5 !pl-8"
-                  placeholder={t("trade.searchMarkets")}
-                  value={orderbookSearch}
-                  onChange={(e) => {
-                    setOrderbookSearch(e.target.value);
-                    setOrderbookSearchOpen(e.target.value.trim().length > 0);
-                  }}
-                  onFocus={() => { if (orderbookSearch.trim()) setOrderbookSearchOpen(true); }}
-                />
-              </div>
-            </div>
-            {orderbookSearchOpen && orderbookSearch.trim() && (
-              <div className="absolute left-0 right-0 top-full z-50 border border-border border-t-0 bg-card shadow-2xl shadow-black/20 rounded-b-lg animate-fade-in">
-                <div className="max-h-[280px] overflow-auto">
-                  {orderbookFilteredMarkets.length === 0 ? (
-                    <p className="px-3 py-6 text-sm text-muted-foreground text-center">{t("trade.noResults")}</p>
-                  ) : (
-                    orderbookFilteredMarkets.map((row) => {
-                      const rp = split(row.symbol);
-                      const ch = toNum(row.changePercent24h);
-                      const active = row.symbol === symbol;
-                      return (
-                        <button
-                          key={row.symbol}
-                          type="button"
-                          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${
-                            active ? "bg-primary/8" : "hover:bg-secondary"
-                          }`}
-                          onClick={() => selectMarket(row.symbol)}
-                        >
-                          <CoinIcon symbol={rp.base} size="sm" />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-semibold text-foreground">{rp.base}</span>
-                            <span className="text-[11px] text-muted-foreground">/{rp.quote}</span>
-                          </div>
-                          <span className="text-sm font-mono text-foreground">{fmt(row.lastPrice, 2)}</span>
-                          <span className={`text-xs font-semibold min-w-[52px] text-right ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`}>
-                            {signPct(ch)}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
             <span className="text-xs font-semibold text-foreground uppercase tracking-wider">{t("trade.orderbook")}</span>
@@ -1132,9 +1129,9 @@ export default function TradePage() {
         </div>
 
         {/* ════════════ CENTER: CHART + ORDER FORM ════════════ */}
-        <div className="flex flex-col overflow-hidden order-1 lg:order-2 min-h-0">
-          {/* Chart */}
-          <div className="shrink-0 h-[524px] lg:h-[488px] border-b border-border overflow-hidden">
+        <div className="flex flex-col overflow-y-auto order-1 lg:order-2 min-h-0">
+          {/* Chart — fixed height so it doesn't shrink when the order form grows */}
+          <div className="h-[420px] shrink-0 border-b border-border overflow-hidden">
             {marketError ? (
               <div className="flex items-center justify-center h-full">
                 <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{marketError}</p>
@@ -1144,219 +1141,288 @@ export default function TradePage() {
             )}
           </div>
 
-          {/* Order Form */}
-          <div className="flex flex-1 min-h-0 flex-col bg-card border-b border-border">
-            {/* Buy/Sell/History tabs */}
-            <div className="grid grid-cols-3 gap-0 border-b border-border bg-secondary/20">
-              <button
-                type="button"
-                className={`py-3 text-base font-bold text-center transition-all border-b-2 ${
-                  side === "BUY"
-                    ? "text-up"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-                style={side === "BUY" ? { borderBottomColor: "hsl(var(--exchange-up))" } : {}}
-                onClick={() => setSide("BUY")}
-              >
-                매수
-              </button>
-              <button
-                type="button"
-                className={`py-3 text-base font-bold text-center transition-all border-b-2 ${
-                  side === "SELL"
-                    ? "text-down"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-                style={side === "SELL" ? { borderBottomColor: "hsl(var(--exchange-down))" } : {}}
-                onClick={() => setSide("SELL")}
-              >
-                매도
-              </button>
-              <button
-                type="button"
-                className="py-3 text-base font-bold text-center text-muted-foreground border-b-2 border-transparent hover:text-foreground hover:border-border transition-all"
-                onClick={() => {
-                  setHistoryTab("ALL");
-                  orderHistoryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                거래내역
-              </button>
+          {/* Order Form — side-by-side Buy / Sell */}
+          <div className="shrink-0 bg-card border-b border-border">
+            {/* Shared header: order type + message */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-secondary/20">
+              <span className="text-xs font-semibold text-muted-foreground shrink-0">주문유형</span>
+              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border">
+                {(["LIMIT", "MARKET", "STOP_LIMIT"] as const).map((ot) => (
+                  <button
+                    key={ot}
+                    type="button"
+                    className={`px-3 py-1.5 text-[11px] font-semibold transition ${
+                      orderType === ot
+                        ? "bg-primary/15 text-primary"
+                        : "bg-secondary/20 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                    } ${ot !== "STOP_LIMIT" ? "border-r border-border" : ""}`}
+                    onClick={() => setOrderType(ot)}
+                  >
+                    {ot === "STOP_LIMIT" ? "스톱" : ot === "LIMIT" ? "지정가" : "시장가"}
+                  </button>
+                ))}
+              </div>
+              {orderMessage && (
+                <div className={`ml-auto max-w-[50%] truncate rounded px-2 py-1 text-[11px] ${
+                  orderMessage.includes("placed") || orderMessage.includes("CANCELED")
+                    ? "bg-emerald-500/10 text-emerald-500"
+                    : "bg-amber-500/10 text-amber-500"
+                }`}>
+                  {orderMessage}
+                </div>
+              )}
             </div>
 
             {!isReady ? (
-              <div className="flex-1 px-4 py-6 text-sm text-muted-foreground text-center">{t("trade.loadingSession")}</div>
+              <div className="px-4 py-6 text-sm text-muted-foreground text-center">{t("trade.loadingSession")}</div>
             ) : (
-              <form className="h-full px-4 py-4 flex flex-col" onSubmit={onSubmitOrder}>
-                <div className="space-y-3">
-                  {orderMessage && (
-                    <div className={`rounded-lg px-3 py-2 text-xs ${
-                      orderMessage.includes("placed") || orderMessage.includes("CANCELED")
-                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-500"
-                        : "bg-amber-500/10 border border-amber-500/30 text-amber-500"
-                    }`}>
-                      {orderMessage}
+              <div className="grid grid-cols-2 divide-x divide-border">
+                {/* ── BUY form ── */}
+                <form className="px-3 py-3 flex flex-col gap-2.5" onSubmit={(e) => onSubmitOrder("BUY", e)}>
+                  {/* 주문가능 */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                    <span className="text-[11px] text-muted-foreground">주문가능</span>
+                    <span className="text-right font-mono text-[11px] font-semibold text-foreground">
+                      {isAuthenticated ? `${fmt(String(availableQuote), 2)} ${pair.quote || "USDT"}` : `- ${pair.quote || "USDT"}`}
+                    </span>
+                  </div>
+
+                  {/* ─ STOP_LIMIT: 감시가격 ─ */}
+                  {orderType === "STOP_LIMIT" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">감시가격</span>
+                      <div className="grid grid-cols-[1fr_auto_auto] overflow-hidden rounded border border-border bg-secondary/20">
+                        <input
+                          className="w-full bg-transparent px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none"
+                          placeholder="0.00"
+                          value={stopPrice}
+                          onChange={(e) => setStopPrice(e.target.value)}
+                        />
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustStopPrice(-1)}>-</button>
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustStopPrice(1)}>+</button>
+                      </div>
                     </div>
                   )}
 
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 items-center">
-                  <div className="grid grid-cols-[76px_1fr] sm:grid-cols-[102px_1fr] gap-1.5 sm:gap-2 items-center">
-                    <div className="text-xs sm:text-sm leading-none font-semibold text-muted-foreground">
-                      <span className="sm:hidden">유형</span>
-                      <span className="hidden sm:inline">주문유형</span>
-                    </div>
-                    <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border">
-                      {(["LIMIT", "MARKET", "STOP_LIMIT"] as const).map((ot) => (
-                        <button
-                          key={ot}
-                          type="button"
-                          className={`py-2 text-xs sm:text-sm font-semibold transition ${
-                            orderType === ot
-                              ? "bg-primary/15 text-primary"
-                              : "bg-secondary/20 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                          } ${ot !== "STOP_LIMIT" ? "border-r border-border" : ""}`}
-                          onClick={() => setOrderType(ot)}
-                        >
-                          {ot === "STOP_LIMIT" ? "스톱" : ot === "LIMIT" ? "지정가" : "시장가"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-[76px_1fr] sm:grid-cols-[102px_1fr] gap-1.5 sm:gap-2 items-center">
-                    <div className="text-xs sm:text-sm leading-none font-semibold text-muted-foreground">
-                      <span className="sm:hidden">가능</span>
-                      <span className="hidden sm:inline">주문가능</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm sm:text-lg leading-none font-mono font-semibold text-foreground">
-                        {isAuthenticated
-                          ? `${fmt(String(availableAmount), side === "BUY" ? 2 : 8)} ${availableAsset}`
-                          : `-${availableAsset}`
-                        }
+                  {/* ─ LIMIT / STOP_LIMIT: 가격 ─ */}
+                  {orderType !== "MARKET" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">{orderType === "STOP_LIMIT" ? "지정가" : "가격"}</span>
+                      <div className="grid grid-cols-[1fr_auto_auto] overflow-hidden rounded border border-border bg-secondary/20">
+                        <input
+                          className="w-full bg-transparent px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none"
+                          placeholder="0.00"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                        />
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustPrice(-1)}>-</button>
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustPrice(1)}>+</button>
                       </div>
-                      {balancesLoading && (
-                        <div className="mt-1 text-xs text-muted-foreground">잔고 갱신 중...</div>
-                      )}
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 items-center">
-                  <div className="grid grid-cols-[76px_1fr] sm:grid-cols-[102px_1fr] gap-1.5 sm:gap-2 items-center">
-                    <div className="text-xs sm:text-sm leading-none font-semibold text-muted-foreground">
-                      <span className="sm:hidden">{side === "BUY" ? "매수가" : "매도가"}</span>
-                      <span className="hidden sm:inline">{side === "BUY" ? "매수가격" : "매도가격"}</span>
-                      <span> ({pair.quote})</span>
+                  {/* ─ MARKET: 시장가 안내 ─ */}
+                  {orderType === "MARKET" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">가격</span>
+                      <div className="flex items-center justify-between rounded border border-border bg-secondary/10 px-2 py-1.5">
+                        <span className="text-xs text-muted-foreground">시장가 즉시체결</span>
+                        <span className="font-mono text-xs font-semibold text-foreground">{currentPrice ? fmt(currentPrice, 2) : "-"}</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-[1fr_auto_auto] overflow-hidden rounded-md border border-border bg-secondary/20">
+                  )}
+
+                  {/* 수량 + % buttons */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-start">
+                    <span className="text-[11px] text-muted-foreground pt-[7px]">수량</span>
+                    <div className="space-y-1.5">
                       <input
-                        className="w-full bg-transparent px-2 sm:px-3 py-2 text-right font-mono text-sm sm:text-base font-semibold text-foreground focus:outline-none"
-                        placeholder={orderType === "MARKET" ? "시장가" : "0.00"}
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        disabled={orderType === "MARKET"}
+                        ref={buyQuantityInputRef}
+                        className="w-full rounded border border-border bg-secondary/20 px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        placeholder="0"
+                        value={buyQuantity}
+                        onChange={(e) => { setBuyQuantity(e.target.value); setBuyPctSelected(null); }}
                       />
-                      <button
-                        type="button"
-                        className="w-7 sm:w-11 border-l border-border text-base sm:text-lg font-bold text-muted-foreground hover:bg-secondary/40"
-                        onClick={() => onAdjustPrice(-1)}
-                        disabled={orderType === "MARKET"}
-                      >
-                        -
-                      </button>
-                      <button
-                        type="button"
-                        className="w-7 sm:w-11 border-l border-border text-base sm:text-lg font-bold text-muted-foreground hover:bg-secondary/40"
-                        onClick={() => onAdjustPrice(1)}
-                        disabled={orderType === "MARKET"}
-                      >
-                        +
-                      </button>
+                      <div className="grid grid-cols-4 gap-1">
+                        {PERCENT_PRESETS.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`rounded border py-0.5 text-[10px] font-semibold transition ${
+                              buyPctSelected === p
+                                ? "border-up/50 bg-up/10 text-up"
+                                : "border-border bg-secondary/20 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                            }`}
+                            onClick={() => applyPercentPreset("BUY", p)}
+                          >
+                            {p}%
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-[76px_1fr] sm:grid-cols-[102px_1fr] gap-1.5 sm:gap-2 items-center">
-                    <div className="text-xs sm:text-sm leading-none font-semibold text-muted-foreground">
-                      <span className="sm:hidden">수량</span>
-                      <span className="hidden sm:inline">주문수량</span>
-                      <span> ({pair.base})</span>
-                    </div>
+                  {/* 총액 */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                    <span className="text-[11px] text-muted-foreground">총액</span>
                     <input
-                      ref={quantityInputRef}
-                      className="w-full rounded-md border border-border bg-secondary/20 px-2 sm:px-3 py-2 text-right font-mono text-sm sm:text-base font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="0"
-                      value={quantity}
-                      onChange={(e) => { setQuantity(e.target.value); setPctSelected(null); }}
+                      className="w-full rounded border border-border bg-secondary/20 px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground"
+                      value={buyEstimatedTotal > 0 ? fmt(String(buyEstimatedTotal), 2) : "0"}
+                      readOnly
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                  {PERCENT_PRESETS.map((p) => (
+                  {/* Fee info */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3">
+                    <span />
+                    <div className="text-[10px] text-muted-foreground text-right">
+                      최소 {minimumOrderDisplay} | 수수료 {feeRateInclVatDisplay}
+                    </div>
+                  </div>
+                  {/* STOP_LIMIT 안내 */}
+                  {orderType === "STOP_LIMIT" && (
+                    <div className="rounded border border-amber-500/20 bg-amber-500/5 px-2 py-1.5 text-[10px] text-amber-600 dark:text-amber-400">
+                      감시가격에 도달하면 지정가로 주문이 자동 등록됩니다.
+                    </div>
+                  )}
+                  {/* Submit */}
+                  {isAuthenticated ? (
                     <button
-                      key={p}
-                      type="button"
-                      className={`rounded-md border py-2 text-sm font-semibold transition ${
-                        pctSelected === p
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-secondary/20 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                      }`}
-                      onClick={() => applyPercentPreset(p)}
+                      type="submit"
+                      disabled={orderSubmitting}
+                      className="w-full py-2 rounded-md text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 btn-buy"
                     >
-                      {p}%
+                      {orderSubmitting ? t("trade.submitting") : `매수 ${pair.base}`}
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="rounded-md border border-border bg-secondary/20 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                    onClick={() => {
-                      setPctSelected(null);
-                      quantityInputRef.current?.focus();
-                    }}
-                  >
-                    직접입력
-                  </button>
-                </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/auth/register" className="btn-secondary !py-2 !text-xs !font-bold text-center">회원가입</Link>
+                      <Link href="/auth/login" className="btn-primary !py-2 !text-xs !font-bold text-center">로그인</Link>
+                    </div>
+                  )}
+                </form>
 
-                <div className="grid grid-cols-[130px_1fr] gap-3 items-center">
-                  <div className="text-sm leading-none font-semibold text-muted-foreground">
-                    <span className="sm:hidden">총액</span>
-                    <span className="hidden sm:inline">주문총액</span>
-                    <span> ({pair.quote})</span>
+                {/* ── SELL form ── */}
+                <form className="px-3 py-3 flex flex-col gap-2.5" onSubmit={(e) => onSubmitOrder("SELL", e)}>
+                  {/* 주문가능 */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                    <span className="text-[11px] text-muted-foreground">주문가능</span>
+                    <span className="text-right font-mono text-[11px] font-semibold text-foreground">
+                      {isAuthenticated ? `${fmt(String(availableBase), 8)} ${pair.base}` : `- ${pair.base}`}
+                    </span>
                   </div>
-                  <input
-                    className="w-full rounded-md border border-border bg-secondary/20 px-4 py-3 text-right font-mono text-base sm:text-lg font-semibold text-foreground"
-                    value={estimatedTotal > 0 ? fmt(String(estimatedTotal), 2) : "0"}
-                    readOnly
-                  />
-                </div>
 
-                  <div className="pt-2 text-right text-sm font-semibold text-muted-foreground">
-                    최소주문: {minimumOrderDisplay}  ・  수수료(부가세 포함): {feeRateInclVatDisplay}
-                    {tradingRulesLoading ? "  (조회중)" : ""}
-                  </div>
-                </div>
+                  {/* ─ STOP_LIMIT: 감시가격 ─ */}
+                  {orderType === "STOP_LIMIT" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">감시가격</span>
+                      <div className="grid grid-cols-[1fr_auto_auto] overflow-hidden rounded border border-border bg-secondary/20">
+                        <input
+                          className="w-full bg-transparent px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none"
+                          placeholder="0.00"
+                          value={stopPrice}
+                          onChange={(e) => setStopPrice(e.target.value)}
+                        />
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustStopPrice(-1)}>-</button>
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustStopPrice(1)}>+</button>
+                      </div>
+                    </div>
+                  )}
 
-                {isAuthenticated ? (
-                  <button
-                    type="submit"
-                    disabled={orderSubmitting}
-                    className={`mt-auto w-full py-[13px] rounded-lg text-lg font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 ${
-                      side === "BUY" ? "btn-buy" : "btn-sell"
-                    }`}
-                  >
-                    {orderSubmitting
-                      ? t("trade.submitting")
-                      : side === "BUY"
-                      ? `${t("trade.buy")} ${pair.base}`
-                      : `${t("trade.sell")} ${pair.base}`}
-                  </button>
-                ) : (
-                  <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
-                    <Link href="/auth/register" className="btn-secondary !py-[13px] !text-lg !font-bold text-center">회원가입</Link>
-                    <Link href="/auth/login" className="btn-primary !py-[13px] !text-lg !font-bold text-center">로그인</Link>
+                  {/* ─ LIMIT / STOP_LIMIT: 가격 ─ */}
+                  {orderType !== "MARKET" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">{orderType === "STOP_LIMIT" ? "지정가" : "가격"}</span>
+                      <div className="grid grid-cols-[1fr_auto_auto] overflow-hidden rounded border border-border bg-secondary/20">
+                        <input
+                          className="w-full bg-transparent px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none"
+                          placeholder="0.00"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                        />
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustPrice(-1)}>-</button>
+                        <button type="button" className="w-7 border-l border-border text-sm font-bold text-muted-foreground hover:bg-secondary/40" onClick={() => onAdjustPrice(1)}>+</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─ MARKET: 시장가 안내 ─ */}
+                  {orderType === "MARKET" && (
+                    <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                      <span className="text-[11px] text-muted-foreground">가격</span>
+                      <div className="flex items-center justify-between rounded border border-border bg-secondary/10 px-2 py-1.5">
+                        <span className="text-xs text-muted-foreground">시장가 즉시체결</span>
+                        <span className="font-mono text-xs font-semibold text-foreground">{currentPrice ? fmt(currentPrice, 2) : "-"}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 수량 + % buttons */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-start">
+                    <span className="text-[11px] text-muted-foreground pt-[7px]">수량</span>
+                    <div className="space-y-1.5">
+                      <input
+                        ref={sellQuantityInputRef}
+                        className="w-full rounded border border-border bg-secondary/20 px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        placeholder="0"
+                        value={sellQuantity}
+                        onChange={(e) => { setSellQuantity(e.target.value); setSellPctSelected(null); }}
+                      />
+                      <div className="grid grid-cols-4 gap-1">
+                        {PERCENT_PRESETS.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`rounded border py-0.5 text-[10px] font-semibold transition ${
+                              sellPctSelected === p
+                                ? "border-down/50 bg-down/10 text-down"
+                                : "border-border bg-secondary/20 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                            }`}
+                            onClick={() => applyPercentPreset("SELL", p)}
+                          >
+                            {p}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </form>
+                  {/* 총액 */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3 items-center">
+                    <span className="text-[11px] text-muted-foreground">총액</span>
+                    <input
+                      className="w-full rounded border border-border bg-secondary/20 px-2 py-1.5 text-right font-mono text-xs font-semibold text-foreground"
+                      value={sellEstimatedTotal > 0 ? fmt(String(sellEstimatedTotal), 2) : "0"}
+                      readOnly
+                    />
+                  </div>
+                  {/* Fee info */}
+                  <div className="grid grid-cols-[52px_1fr] gap-3">
+                    <span />
+                    <div className="text-[10px] text-muted-foreground text-right">
+                      최소 {minimumOrderDisplay} | 수수료 {feeRateInclVatDisplay}
+                    </div>
+                  </div>
+                  {/* STOP_LIMIT 안내 */}
+                  {orderType === "STOP_LIMIT" && (
+                    <div className="rounded border border-amber-500/20 bg-amber-500/5 px-2 py-1.5 text-[10px] text-amber-600 dark:text-amber-400">
+                      감시가격에 도달하면 지정가로 주문이 자동 등록됩니다.
+                    </div>
+                  )}
+                  {/* Submit */}
+                  {isAuthenticated ? (
+                    <button
+                      type="submit"
+                      disabled={orderSubmitting}
+                      className="w-full py-2 rounded-md text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 btn-sell"
+                    >
+                      {orderSubmitting ? t("trade.submitting") : `매도 ${pair.base}`}
+                    </button>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/auth/register" className="btn-secondary !py-2 !text-xs !font-bold text-center">회원가입</Link>
+                      <Link href="/auth/login" className="btn-primary !py-2 !text-xs !font-bold text-center">로그인</Link>
+                    </div>
+                  )}
+                </form>
+              </div>
             )}
           </div>
         </div>
@@ -1420,9 +1486,34 @@ export default function TradePage() {
             </div>
           </div>
 
-          {/* Markets list */}
-          <div className="px-3 py-2 border-b border-border shrink-0">
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("trade.markets")}</div>
+          {/* Markets list — tabs + search */}
+          <div className="px-3 py-2 border-b border-border shrink-0 space-y-2">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${
+                  marketTab === "FAVORITES"
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+                onClick={() => setMarketTab("FAVORITES")}
+              >
+                <svg className="inline-block w-3 h-3 mr-0.5 -mt-px" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>
+                즐겨찾기
+                {favorites.size > 0 && <span className="ml-1 text-[10px] text-muted-foreground">({favorites.size})</span>}
+              </button>
+              <button
+                type="button"
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${
+                  marketTab === "ALL"
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+                onClick={() => setMarketTab("ALL")}
+              >
+                전체
+              </button>
+            </div>
             <input
               className="input-field text-xs !py-1.5"
               placeholder={t("trade.searchSymbol")}
@@ -1432,51 +1523,68 @@ export default function TradePage() {
           </div>
 
           {/* Market list header */}
-          <div className="grid grid-cols-3 px-3 py-1.5 text-[10px] font-semibold text-muted-foreground border-b border-border shrink-0">
+          <div className="grid grid-cols-[16px_1fr_auto_auto] gap-1 px-3 py-1.5 text-[10px] font-semibold text-muted-foreground border-b border-border shrink-0">
+            <span />
             <span>{t("trade.pair")}</span>
             <span className="text-right">{t("trade.price")}</span>
-            <span className="text-right">{t("trade.24hChange")}</span>
+            <span className="text-right min-w-[52px]">{t("trade.24hChange")}</span>
           </div>
 
           {/* Market list scrollable */}
           <div className="flex-1 overflow-auto">
-            {marketListError ? (
-              <p className="px-3 py-4 text-xs text-destructive">{marketListError}</p>
-            ) : marketListLoading && filteredMarkets.length === 0 ? (
-              <div className="px-3 py-6 space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-8 rounded bg-secondary animate-pulse" />
-                ))}
-              </div>
-            ) : filteredMarkets.length === 0 ? (
-              <p className="px-3 py-6 text-sm text-muted-foreground text-center">{t("trade.noResults")}</p>
-            ) : (
-              filteredMarkets.map((row) => {
+            {(() => {
+              const displayList = marketTab === "FAVORITES" ? favoriteMarkets : filteredMarkets;
+              if (marketListError) return <p className="px-3 py-4 text-xs text-destructive">{marketListError}</p>;
+              if (marketListLoading && displayList.length === 0) return (
+                <div className="px-3 py-6 space-y-2">
+                  {[1, 2, 3, 4].map((i) => <div key={i} className="h-8 rounded bg-secondary animate-pulse" />)}
+                </div>
+              );
+              if (displayList.length === 0) return (
+                <p className="px-3 py-6 text-sm text-muted-foreground text-center">
+                  {marketTab === "FAVORITES" ? "즐겨찾기한 마켓이 없습니다." : t("trade.noResults")}
+                </p>
+              );
+              return displayList.map((row) => {
                 const rp = split(row.symbol);
                 const ch = toNum(row.changePercent24h);
                 const active = row.symbol === symbol;
+                const isFav = favorites.has(row.symbol);
                 return (
-                  <button
+                  <div
                     key={row.symbol}
-                    type="button"
-                    className={`grid w-full grid-cols-3 items-center px-3 py-2 text-left transition ${
+                    className={`grid grid-cols-[16px_1fr_auto_auto] gap-1 items-center px-3 py-2 transition ${
                       active ? "bg-primary/8 border-l-2 border-l-primary" : "hover:bg-secondary border-l-2 border-l-transparent"
                     }`}
-                    onClick={() => selectMarket(row.symbol)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      className="flex items-center justify-center"
+                      onClick={() => toggleFavorite(row.symbol)}
+                    >
+                      <svg className={`w-3 h-3 transition ${isFav ? "text-gold" : "text-muted-foreground/40 hover:text-gold/60"}`} viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 min-w-0 text-left"
+                      onClick={() => selectMarket(row.symbol)}
+                    >
                       <CoinIcon symbol={rp.base} size="xs" />
                       <span className="text-xs font-semibold text-foreground truncate">{rp.base}</span>
                       <span className="text-[10px] text-muted-foreground">/{rp.quote}</span>
-                    </div>
-                    <span className="text-right text-xs font-mono text-foreground">{fmt(row.lastPrice, 2)}</span>
-                    <span className={`text-right text-xs font-semibold ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`}>
+                    </button>
+                    <button type="button" className="text-right text-xs font-mono text-foreground" onClick={() => selectMarket(row.symbol)}>
+                      {fmt(row.lastPrice, 2)}
+                    </button>
+                    <button type="button" className={`text-right text-xs font-semibold min-w-[52px] ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`} onClick={() => selectMarket(row.symbol)}>
                       {signPct(ch)}
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
       </div>

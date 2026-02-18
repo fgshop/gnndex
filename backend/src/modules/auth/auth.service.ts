@@ -172,22 +172,7 @@ export class AuthService {
 
   async login(input: LoginDto) {
     const user = await this.validateCredentials(input.email, input.password);
-    if (user.security?.twoFactorEnabled) {
-      if (!input.twoFactorCode) {
-        throw new HttpException(
-          { statusCode: 428, message: "2FA code is required", requiresTwoFactor: true },
-          428
-        );
-      }
-
-      const verified = authenticator.check(
-        input.twoFactorCode,
-        user.security.twoFactorSecret ?? ""
-      );
-      if (!verified) {
-        throw new UnauthorizedException("Invalid 2FA code");
-      }
-    }
+    // 2FA is enforced at order placement, not at login
 
     const tokens = await this.createSession(this.prisma, user, {
       ipAddress: input.ipAddress,

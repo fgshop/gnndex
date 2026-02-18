@@ -1,14 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CoinIcon } from "@/components/coin-icon";
 import { useTranslation } from "@/i18n/locale-context";
 import { api } from "@/lib/api";
 import {
   type BalanceRow,
   type MessageState,
-  AVAILABLE_ASSETS,
-  AVAILABLE_NETWORKS,
+  type CoinNetworkInfo,
   ChevronDown,
   coinName,
   formatAmount,
@@ -16,24 +15,40 @@ import {
   toNumber,
 } from "@/features/wallet/wallet-shared";
 
-/* ─── Component ─────────────────────────────────────────── */
-
 type WalletWithdrawTabProps = {
   balances: BalanceRow[];
   onWithdraw: () => void;
   setMessage: (msg: MessageState) => void;
+  initialAsset?: string;
+  networkConfig: CoinNetworkInfo[];
 };
 
-export function WalletWithdrawTab({ balances, onWithdraw, setMessage }: WalletWithdrawTabProps) {
+export function WalletWithdrawTab({ balances, onWithdraw, setMessage, initialAsset, networkConfig }: WalletWithdrawTabProps) {
   const { t } = useTranslation();
 
-  const [asset, setAsset] = useState("USDT");
-  const [network, setNetwork] = useState("ETH-ERC20");
+  const availableAssets = useMemo(() => networkConfig.map((c) => c.asset), [networkConfig]);
+
+  const [asset, setAsset] = useState(initialAsset ?? "USDT");
+  const [network, setNetwork] = useState("");
   const [address, setAddress] = useState("");
   const [memo, setMemo] = useState("");
   const [amount, setAmount] = useState("");
-  const [fee] = useState("0.1");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  const selectedCoinConfig = useMemo(() => networkConfig.find((c) => c.asset === asset), [networkConfig, asset]);
+  const isNativeCoin = selectedCoinConfig?.type === "native";
+  const availableNetworks = selectedCoinConfig?.networks ?? [];
+
+  useEffect(() => {
+    if (selectedCoinConfig) {
+      setNetwork(selectedCoinConfig.networks[0]?.network ?? "");
+    }
+  }, [asset, selectedCoinConfig]);
+
+  const selectedNetworkInfo = useMemo(() => {
+    return availableNetworks.find((n) => n.network === network) ?? availableNetworks[0];
+  }, [availableNetworks, network]);
+  const fee = selectedNetworkInfo?.withdrawFee ?? "0";
 
   const selectedAssetBalance = useMemo(() => {
     const found = balances.find((b) => b.asset === asset);
@@ -108,7 +123,7 @@ export function WalletWithdrawTab({ balances, onWithdraw, setMessage }: WalletWi
                 onChange={(e) => setAsset(e.target.value)}
                 className="input-field appearance-none pl-9 pr-10"
               >
-                {AVAILABLE_ASSETS.map((a) => (
+                {availableAssets.map((a) => (
                   <option key={a} value={a}>
                     {a} - {coinName(a)}
                   </option>
@@ -125,22 +140,28 @@ export function WalletWithdrawTab({ balances, onWithdraw, setMessage }: WalletWi
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t("wallet.network")}
             </label>
-            <div className="relative">
-              <select
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-                className="input-field appearance-none pr-10"
-              >
-                {AVAILABLE_NETWORKS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            {isNativeCoin ? (
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm font-medium text-foreground">
+                {selectedCoinConfig.networks[0]?.displayName}
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={network}
+                  onChange={(e) => setNetwork(e.target.value)}
+                  className="input-field appearance-none pr-10"
+                >
+                  {availableNetworks.map((n) => (
+                    <option key={n.network} value={n.network}>
+                      {n.displayName}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

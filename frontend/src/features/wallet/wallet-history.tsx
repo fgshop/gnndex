@@ -7,7 +7,6 @@ import { useTranslation } from "@/i18n/locale-context";
 import {
   type WithdrawalRow,
   STATUS_MAP,
-  AVAILABLE_ASSETS,
   SectionEmptyState,
   CopyButton,
   formatAmount,
@@ -166,8 +165,7 @@ export function WalletHistoryTab({ withdrawals }: { withdrawals: WithdrawalRow[]
 
   /* ── Unique assets in data ── */
   const assetsInData = useMemo(() => {
-    const set = new Set(allTransactions.map((tx) => tx.asset));
-    return AVAILABLE_ASSETS.filter((a) => set.has(a));
+    return Array.from(new Set(allTransactions.map((tx) => tx.asset))).sort();
   }, [allTransactions]);
 
   /* ── Excel export ── */

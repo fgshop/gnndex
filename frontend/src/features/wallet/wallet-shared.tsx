@@ -10,6 +10,7 @@ export type BalanceRow = {
   asset: string;
   available: string;
   locked: string;
+  depositAddress?: string | null;
 };
 
 export type WithdrawalRow = {
@@ -77,8 +78,18 @@ export const COIN_NAMES: Record<string, string> = {
   ADA: "Cardano",
 };
 
-export const AVAILABLE_ASSETS = ["USDT", "BTC", "ETH", "SOL", "XRP", "SBK", "G99", "BNB"];
-export const AVAILABLE_NETWORKS = ["ETH-ERC20", "TRC20", "BSC-BEP20", "SOL", "Polygon", "Avalanche-C"];
+export type CoinNetworkInfo = {
+  asset: string;
+  name: string;
+  type: "native" | "token";
+  networks: Array<{
+    network: string;
+    displayName: string;
+    confirmations: number;
+    minDeposit: string;
+    withdrawFee: string;
+  }>;
+};
 
 export const STATUS_MAP: Record<string, { labelKey: string; className: string }> = {
   REQUESTED: { labelKey: "wallet.statusPending", className: "badge-warning" },

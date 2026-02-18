@@ -81,9 +81,6 @@ type TradingViewChartProps = {
   symbol: string;
 };
 
-const unsafeApi = api as unknown as {
-  GET: (path: string, options?: unknown) => Promise<{ data?: unknown; error?: unknown }>;
-};
 
 function fmtValue(value: number, maxFrac = 6): string {
   if (!Number.isFinite(value)) return "-";
@@ -218,7 +215,7 @@ function InternalDbCandleChart({ symbol, chartFrame }: { symbol: string; chartFr
 
   if (loading && candles.length === 0) {
     return (
-      <div className="flex h-full min-h-[390px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
         내부 차트 데이터 로딩 중...
       </div>
     );
@@ -226,7 +223,7 @@ function InternalDbCandleChart({ symbol, chartFrame }: { symbol: string; chartFr
 
   if (errorMessage && candles.length === 0) {
     return (
-      <div className="flex h-full min-h-[390px] items-center justify-center text-sm text-destructive">
+      <div className="flex h-full min-h-0 items-center justify-center text-sm text-destructive">
         {errorMessage}
       </div>
     );
@@ -234,14 +231,14 @@ function InternalDbCandleChart({ symbol, chartFrame }: { symbol: string; chartFr
 
   if (!svg || candles.length === 0) {
     return (
-      <div className="flex h-full min-h-[390px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
         내부 차트 데이터가 없습니다.
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-[390px] w-full rounded-lg border border-border bg-card p-2">
+    <div className="h-full min-h-0 w-full rounded-lg border border-border bg-card p-2">
       <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
         <span>Internal DB Candle: {symbol}</span>
         <span className={deltaPct !== null && deltaPct < 0 ? "text-down" : "text-up"}>
@@ -328,7 +325,7 @@ export function TradingViewChart({ symbol }: TradingViewChartProps) {
     let active = true;
 
     const loadChartSource = async () => {
-      const { data, error } = await unsafeApi.GET("/market/listed-coins");
+      const { data, error } = await api.GET("/market/listed-coins");
       if (!active) {
         return;
       }
@@ -400,13 +397,13 @@ export function TradingViewChart({ symbol }: TradingViewChartProps) {
           ))}
         </div>
       </div>
-      <div className="flex-1 min-h-[390px] overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-card">
         {useInternalChart ? (
           <InternalDbCandleChart chartFrame={chartFrame} symbol={symbol} />
         ) : (
           <iframe
             allowFullScreen
-            className="h-full min-h-[390px] w-full bg-card"
+            className="h-full min-h-0 w-full bg-card"
             key={`${tvSymbol}-${chartFrame}-${resolvedTheme}`}
             src={chartUrl}
             title={`TradingView ${tvSymbol} Chart`}

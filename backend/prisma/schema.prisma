@@ -237,14 +237,15 @@ model DashboardShareLink {
 }
 
 model WalletBalance {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  asset     String
-  available Decimal  @db.Decimal(36, 18)
-  locked    Decimal  @db.Decimal(36, 18)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  asset          String
+  available      Decimal  @db.Decimal(36, 18)
+  locked         Decimal  @db.Decimal(36, 18)
+  depositAddress String?  @map("deposit_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, asset], map: "wallet_unique_user_asset")
   @@index([asset])

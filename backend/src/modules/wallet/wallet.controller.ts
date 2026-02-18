@@ -27,6 +27,8 @@ import { PermissionsGuard } from "../../common/guards/permissions.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/interfaces/authenticated-user.interface";
 import { AdjustBalanceDto } from "./dto/adjust-balance.dto";
+import { CreateWalletDto } from "./dto/create-wallet.dto";
+import { SimulateDepositDto } from "./dto/simulate-deposit.dto";
 import { ListMyWithdrawalsQueryDto } from "./dto/list-my-withdrawals.dto";
 import { RequestWithdrawalDto } from "./dto/request-withdrawal.dto";
 import { StreamBalancesQueryDto } from "./dto/stream-balances.dto";
@@ -39,6 +41,12 @@ import { WalletService } from "./wallet.service";
 @ApiUnauthorizedResponse({ description: "Missing or invalid token", type: ErrorResponseDto })
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
+
+  @Get("networks")
+  @ApiOperation({ summary: "Get supported coin/network configurations" })
+  getNetworks() {
+    return this.walletService.getNetworkConfig();
+  }
 
   @Get("balances")
   @ApiOperation({ summary: "Get wallet balances" })
@@ -58,6 +66,16 @@ export class WalletController {
         data: payload
       }))
     );
+  }
+
+  @Post("wallets")
+  @ApiOperation({ summary: "Create wallet (generate deposit address)" })
+  @ApiBadRequestResponse({ description: "Invalid asset", type: ErrorResponseDto })
+  async createWallet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreateWalletDto
+  ) {
+    return this.walletService.createWallet(user.sub, body);
   }
 
   @Get("ledger")
@@ -83,6 +101,16 @@ export class WalletController {
     @Query() query: ListMyWithdrawalsQueryDto
   ) {
     return this.walletService.listWithdrawalsByUserId(user.sub, query);
+  }
+
+  @Post("deposit")
+  @ApiOperation({ summary: "Simulate deposit (development)" })
+  @ApiBadRequestResponse({ description: "Invalid deposit request", type: ErrorResponseDto })
+  async simulateDeposit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: SimulateDepositDto
+  ) {
+    return this.walletService.simulateDeposit(user.sub, body.asset, body.amount);
   }
 
   @Post("admin-adjust")

@@ -1,40 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { CoinIcon } from "@/components/coin-icon";
 import { useTranslation } from "@/i18n/locale-context";
+import { api } from "@/lib/api";
 import {
   type BalanceRow,
-  AVAILABLE_ASSETS,
-  AVAILABLE_NETWORKS,
+  type CoinNetworkInfo,
+  type MessageState,
   STATUS_MAP,
   ChevronDown,
   CopyButton,
   SectionEmptyState,
+  TabIcon,
   coinName,
   formatAmount,
   formatDateTime,
+  parseApiError,
 } from "@/features/wallet/wallet-shared";
-
-/* ─── Mock address generators ─────────────────────────── */
-
-const MOCK_ADDRESSES: Record<string, string> = {
-  "ETH-ERC20": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
-  "TRC20": "TJYs5Lq3aEYEFhR7Nru42N37w8sVFH2jYk",
-  "BSC-BEP20": "0x1Ae3739CA28bF4837feF87C8c1fd91563f2bA217",
-  "SOL": "7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV",
-  "Polygon": "0x5aAe36B8B285eA58c3F17E3fBD06Da69A3e5D88F",
-  "Avalanche-C": "0xC3A7d6b5F245Fe81b8Ea3D5b2c9E6f8a07D12C34",
-};
-
-const NETWORK_INFO: Record<string, { confirmations: number; minDeposit: string }> = {
-  "ETH-ERC20": { confirmations: 12, minDeposit: "0.001" },
-  "TRC20": { confirmations: 20, minDeposit: "1.00" },
-  "BSC-BEP20": { confirmations: 15, minDeposit: "0.001" },
-  "SOL": { confirmations: 32, minDeposit: "0.01" },
-  "Polygon": { confirmations: 128, minDeposit: "0.01" },
-  "Avalanche-C": { confirmations: 12, minDeposit: "0.01" },
-};
 
 type MockDeposit = {
   id: string;
@@ -59,7 +43,7 @@ const MOCK_DEPOSITS: MockDeposit[] = [
   {
     id: "dep-002",
     asset: "ETH",
-    network: "ETH-ERC20",
+    network: "Ethereum",
     amount: "0.25",
     status: "PENDING",
     txHash: "0xf9e8d7c6b5a43210fedcba9876543210fedcba9876543210fedcba9876543210",
@@ -68,7 +52,7 @@ const MOCK_DEPOSITS: MockDeposit[] = [
   {
     id: "dep-003",
     asset: "SOL",
-    network: "SOL",
+    network: "Solana",
     amount: "12.50",
     status: "CONFIRMED",
     txHash: "4sGjMW1sUnHzSxGspuhSqbXVKJUAm3RqWXY6TuDZ3u1h7kQxPkYeN5NhxS6aN38q",
@@ -77,7 +61,7 @@ const MOCK_DEPOSITS: MockDeposit[] = [
   {
     id: "dep-004",
     asset: "BTC",
-    network: "ETH-ERC20",
+    network: "Bitcoin",
     amount: "0.015",
     status: "CONFIRMED",
     txHash: "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d",
@@ -89,20 +73,88 @@ const MOCK_DEPOSITS: MockDeposit[] = [
 
 type WalletDepositTabProps = {
   balances: BalanceRow[];
+  initialAsset?: string;
+  createWallet: (asset: string, network?: string) => Promise<void>;
+  networkConfig: CoinNetworkInfo[];
+  setMessage: (msg: MessageState) => void;
+  onDeposit: () => void;
 };
 
-export function WalletDepositTab({ balances }: WalletDepositTabProps) {
+export function WalletDepositTab({ balances, initialAsset, createWallet, networkConfig, setMessage, onDeposit }: WalletDepositTabProps) {
   const { t } = useTranslation();
-  const [asset, setAsset] = useState("USDT");
-  const [network, setNetwork] = useState("ETH-ERC20");
+  const [asset, setAsset] = useState(initialAsset ?? "USDT");
+  const [network, setNetwork] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [creatingWallet, setCreatingWallet] = useState(false);
+  const [depositing, setDepositing] = useState(false);
 
-  const depositAddress = MOCK_ADDRESSES[network] ?? MOCK_ADDRESSES["ETH-ERC20"];
-  const networkInfo = NETWORK_INFO[network] ?? { confirmations: 12, minDeposit: "0.001" };
+  const availableAssets = useMemo(() => networkConfig.map((c) => c.asset), [networkConfig]);
+
+  const selectedCoinConfig = useMemo(() => networkConfig.find((c) => c.asset === asset), [networkConfig, asset]);
+  const isNativeCoin = selectedCoinConfig?.type === "native";
+  const availableNetworks = selectedCoinConfig?.networks ?? [];
+
+  // Auto-select network when asset changes
+  useEffect(() => {
+    if (selectedCoinConfig) {
+      setNetwork(selectedCoinConfig.networks[0]?.network ?? "");
+    }
+  }, [asset, selectedCoinConfig]);
+
+  const selectedNetworkInfo = useMemo(() => {
+    return availableNetworks.find((n) => n.network === network) ?? availableNetworks[0];
+  }, [availableNetworks, network]);
+
+  const selectedBalanceRow = useMemo(() => balances.find((b) => b.asset === asset), [balances, asset]);
+  const depositAddress = selectedBalanceRow?.depositAddress ?? null;
+  const hasWallet = !!selectedBalanceRow;
+
+  const handleCreateWallet = async () => {
+    // Always resolve network from config to avoid sending empty string
+    const coinCfg = networkConfig.find((c) => c.asset === asset);
+    if (!coinCfg) return;
+    const resolvedNetwork = coinCfg.type === "token" ? (network || coinCfg.networks[0]?.network) : undefined;
+
+    setCreatingWallet(true);
+    await createWallet(asset, resolvedNetwork);
+    setCreatingWallet(false);
+  };
+
+  const handleDeposit = async () => {
+    if (!depositAmount || Number(depositAmount) <= 0) {
+      setMessage({ text: t("wallet.invalidAmount"), type: "error" });
+      return;
+    }
+    const minDeposit = Number(selectedNetworkInfo?.minDeposit ?? "0");
+    if (Number(depositAmount) < minDeposit) {
+      setMessage({ text: `${t("wallet.minDeposit")}: ${minDeposit} ${asset}`, type: "error" });
+      return;
+    }
+
+    setDepositing(true);
+    setMessage({ text: "", type: "info" });
+
+    const { error } = await api.POST("/wallet/deposit", {
+      body: { asset, amount: depositAmount },
+    });
+
+    setDepositing(false);
+
+    if (error) {
+      setMessage({ text: parseApiError(error, t("wallet.depositFailed")), type: "error" });
+      return;
+    }
+
+    setMessage({ text: t("wallet.depositSuccess"), type: "success" });
+    setDepositAmount("");
+    onDeposit();
+  };
 
   const selectedBalance = useMemo(() => {
-    const found = balances.find((b) => b.asset === asset);
-    return found ? formatAmount(found.available, 6) : "0.00";
-  }, [balances, asset]);
+    return selectedBalanceRow ? formatAmount(selectedBalanceRow.available, 6) : "0.00";
+  }, [selectedBalanceRow]);
+
+  const canDeposit = hasWallet && depositAddress && depositAmount && Number(depositAmount) > 0;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -132,7 +184,7 @@ export function WalletDepositTab({ balances }: WalletDepositTabProps) {
                   onChange={(e) => setAsset(e.target.value)}
                   className="input-field appearance-none pl-9 pr-10"
                 >
-                  {AVAILABLE_ASSETS.map((a) => (
+                  {availableAssets.map((a) => (
                     <option key={a} value={a}>
                       {a} - {coinName(a)}
                     </option>
@@ -155,89 +207,164 @@ export function WalletDepositTab({ balances }: WalletDepositTabProps) {
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("wallet.network")}
               </label>
-              <div className="relative">
-                <select
-                  value={network}
-                  onChange={(e) => setNetwork(e.target.value)}
-                  className="input-field appearance-none pr-10"
-                >
-                  {AVAILABLE_NETWORKS.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              {isNativeCoin ? (
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm font-medium text-foreground">
+                  {selectedCoinConfig?.networks[0]?.displayName ?? network}
                 </div>
-              </div>
+              ) : (
+                <div className="relative">
+                  <select
+                    value={network}
+                    onChange={(e) => setNetwork(e.target.value)}
+                    className="input-field appearance-none pr-10"
+                  >
+                    {availableNetworks.map((n) => (
+                      <option key={n.network} value={n.network}>
+                        {n.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Deposit Amount */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("wallet.depositAmount")}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={depositAmount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || /^\d*\.?\d*$/.test(v)) setDepositAmount(v);
+                }}
+                placeholder={`${t("wallet.minDeposit")}: ${selectedNetworkInfo?.minDeposit ?? "0.001"} ${asset}`}
+                className="input-field pr-20 font-[var(--font-mono)]"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-semibold text-muted-foreground">
+                {asset}
+              </span>
+            </div>
+            {depositAmount !== "" && Number(depositAmount) > 0 && Number(depositAmount) < Number(selectedNetworkInfo?.minDeposit ?? "0") && (
+              <p className="mt-1.5 text-xs text-destructive">
+                {t("wallet.minDeposit")}: {selectedNetworkInfo?.minDeposit ?? "0.001"} {asset}
+              </p>
+            )}
           </div>
 
           {/* Deposit Address + QR */}
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-            {/* Address display */}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("wallet.depositAddress")}
-              </label>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-4">
-                <code className="min-w-0 flex-1 break-all font-[var(--font-mono)] text-sm font-medium text-foreground">
-                  {depositAddress}
-                </code>
-                <CopyButton text={depositAddress} />
+          {!hasWallet || !depositAddress ? (
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-border bg-muted/20 py-10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground/40">
+                <TabIcon type="wallet" className="h-7 w-7" />
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {t("wallet.sendOnly")} <span className="font-semibold text-foreground">{asset}</span> {t("wallet.toThisAddress")} ({network})
+              <p className="mt-4 text-sm font-medium text-muted-foreground">
+                {t("wallet.noWalletYet")}
               </p>
+              <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground/70">
+                {t("wallet.createWalletForDeposit")}
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleCreateWallet()}
+                disabled={creatingWallet || networkConfig.length === 0}
+                className="btn-primary mt-4 !px-5 !py-2"
+              >
+                {creatingWallet ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    {t("wallet.processing")}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <TabIcon type="wallet" className="h-4 w-4" />
+                    {t("wallet.createWallet")}
+                  </span>
+                )}
+              </button>
             </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+              {/* Address display */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("wallet.depositAddress")}
+                </label>
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-4">
+                  <code className="min-w-0 flex-1 break-all font-[var(--font-mono)] text-sm font-medium text-foreground">
+                    {depositAddress}
+                  </code>
+                  <CopyButton text={depositAddress} />
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {t("wallet.sendOnly")} <span className="font-semibold text-foreground">{asset}</span> {t("wallet.toThisAddress")} ({selectedNetworkInfo?.displayName ?? network})
+                </p>
+              </div>
 
-            {/* QR Code placeholder */}
-            <div className="flex flex-col items-center">
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("wallet.qrCode")}
-              </label>
-              <div className="flex h-[140px] w-[140px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30">
-                <svg
-                  className="h-10 w-10 text-muted-foreground/40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="2" y="2" width="8" height="8" rx="1" />
-                  <rect x="14" y="2" width="8" height="8" rx="1" />
-                  <rect x="2" y="14" width="8" height="8" rx="1" />
-                  <rect x="14" y="14" width="4" height="4" rx="0.5" />
-                  <rect x="20" y="14" width="2" height="2" rx="0.25" />
-                  <rect x="14" y="20" width="2" height="2" rx="0.25" />
-                  <rect x="20" y="20" width="2" height="2" rx="0.25" />
-                </svg>
-                <span className="mt-1.5 text-[11px] font-medium text-muted-foreground/60">
+              {/* QR Code */}
+              <div className="flex flex-col items-center">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("wallet.qrCode")}
+                </label>
+                <div className="flex h-[140px] w-[140px] items-center justify-center rounded-xl border border-border bg-white p-2">
+                  <QRCodeSVG
+                    value={depositAddress}
+                    size={120}
+                    level="M"
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Network info card */}
+          {selectedNetworkInfo && (
+            <div className="rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t("wallet.minDeposit")}</span>
+                <span className="font-[var(--font-mono)] font-semibold text-foreground">
+                  {selectedNetworkInfo.minDeposit} {asset}
+                </span>
+              </div>
+              <div className="my-2 border-t border-border/50" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t("wallet.confirmations")}</span>
+                <span className="font-[var(--font-mono)] font-semibold text-foreground">
+                  {selectedNetworkInfo.confirmations}
                 </span>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Network info card */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{t("wallet.minDeposit")}</span>
-              <span className="font-[var(--font-mono)] font-semibold text-foreground">
-                {networkInfo.minDeposit} {asset}
+          {/* Deposit button */}
+          <button
+            type="button"
+            onClick={() => void handleDeposit()}
+            disabled={!canDeposit || depositing}
+            className="btn-primary w-full"
+          >
+            {depositing ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                {t("wallet.processing")}
               </span>
-            </div>
-            <div className="my-2 border-t border-border/50" />
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{t("wallet.confirmations")}</span>
-              <span className="font-[var(--font-mono)] font-semibold text-foreground">
-                {networkInfo.confirmations}
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <TabIcon type="download" className="h-4 w-4" />
+                {t("wallet.submitDeposit")}
               </span>
-            </div>
-          </div>
+            )}
+          </button>
         </div>
       </section>
 

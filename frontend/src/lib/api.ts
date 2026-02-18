@@ -8,15 +8,9 @@ import {
   updateStoredTokens
 } from "@/features/auth/auth-storage";
 
-function resolveDefaultApiBaseUrl(): string {
-  return "http://localhost:4000/v1";
-}
-
-const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-export const apiBaseUrl =
-  configuredApiBaseUrl && configuredApiBaseUrl.length > 0
-    ? configuredApiBaseUrl
-    : resolveDefaultApiBaseUrl();
+// Use relative path so all requests go through Next.js rewrites (no CORS issues).
+// next.config.mjs proxies /v1/* to the actual backend based on NEXT_PUBLIC_API_BASE_URL.
+export const apiBaseUrl = "/v1";
 let refreshInFlight: Promise<string | null> | null = null;
 
 function getRequestUrl(input: RequestInfo | URL): string {
