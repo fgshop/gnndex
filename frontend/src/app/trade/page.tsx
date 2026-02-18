@@ -208,6 +208,8 @@ export default function TradePage() {
   const [marketListError, setMarketListError] = useState("");
   const [marketSearch, setMarketSearch] = useState("");
   const [marketDropdownOpen, setMarketDropdownOpen] = useState(false);
+  const [orderbookSearch, setOrderbookSearch] = useState("");
+  const [orderbookSearchOpen, setOrderbookSearchOpen] = useState(false);
 
   /* ─── Order form state ─── */
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -240,6 +242,7 @@ export default function TradePage() {
   const [historyTab, setHistoryTab] = useState<OrderHistoryTab>("OPEN");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const orderbookSearchRef = useRef<HTMLDivElement>(null);
   const orderHistoryRef = useRef<HTMLDivElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
 
@@ -481,6 +484,9 @@ export default function TradePage() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setMarketDropdownOpen(false);
       }
+      if (orderbookSearchRef.current && !orderbookSearchRef.current.contains(e.target as Node)) {
+        setOrderbookSearchOpen(false);
+      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -574,6 +580,16 @@ export default function TradePage() {
       return r.symbol.includes(q) || p.base.includes(q);
     });
   }, [marketRows, marketSearch]);
+
+  const orderbookFilteredMarkets = useMemo(() => {
+    const q = orderbookSearch.trim().toUpperCase();
+    if (!q) return [];
+    return marketRows.filter((r) => {
+      const p = split(r.symbol);
+      if (p.quote !== "USDT") return false;
+      return r.symbol.includes(q) || p.base.includes(q);
+    });
+  }, [marketRows, orderbookSearch]);
 
   /* Filter orders by tab */
   const filteredOrders = useMemo(() => {
@@ -716,6 +732,8 @@ export default function TradePage() {
   const selectMarket = (sym: string) => {
     setSymbol(sym);
     setMarketDropdownOpen(false);
+    setOrderbookSearch("");
+    setOrderbookSearchOpen(false);
     setSide("BUY");
   };
 
@@ -902,6 +920,62 @@ export default function TradePage() {
 
         {/* ════════════ LEFT: ORDERBOOK ════════════ */}
         <div className="border-r border-border bg-card flex flex-col overflow-hidden order-2 lg:order-1">
+          {/* Orderbook search */}
+          <div className="relative shrink-0" ref={orderbookSearchRef}>
+            <div className="px-3 py-2 border-b border-border">
+              <div className="relative">
+                <svg className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  className="input-field text-xs !py-1.5 !pl-8"
+                  placeholder={t("trade.searchMarkets")}
+                  value={orderbookSearch}
+                  onChange={(e) => {
+                    setOrderbookSearch(e.target.value);
+                    setOrderbookSearchOpen(e.target.value.trim().length > 0);
+                  }}
+                  onFocus={() => { if (orderbookSearch.trim()) setOrderbookSearchOpen(true); }}
+                />
+              </div>
+            </div>
+            {orderbookSearchOpen && orderbookSearch.trim() && (
+              <div className="absolute left-0 right-0 top-full z-50 border border-border border-t-0 bg-card shadow-2xl shadow-black/20 rounded-b-lg animate-fade-in">
+                <div className="max-h-[280px] overflow-auto">
+                  {orderbookFilteredMarkets.length === 0 ? (
+                    <p className="px-3 py-6 text-sm text-muted-foreground text-center">{t("trade.noResults")}</p>
+                  ) : (
+                    orderbookFilteredMarkets.map((row) => {
+                      const rp = split(row.symbol);
+                      const ch = toNum(row.changePercent24h);
+                      const active = row.symbol === symbol;
+                      return (
+                        <button
+                          key={row.symbol}
+                          type="button"
+                          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${
+                            active ? "bg-primary/8" : "hover:bg-secondary"
+                          }`}
+                          onClick={() => selectMarket(row.symbol)}
+                        >
+                          <CoinIcon symbol={rp.base} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-semibold text-foreground">{rp.base}</span>
+                            <span className="text-[11px] text-muted-foreground">/{rp.quote}</span>
+                          </div>
+                          <span className="text-sm font-mono text-foreground">{fmt(row.lastPrice, 2)}</span>
+                          <span className={`text-xs font-semibold min-w-[52px] text-right ${(ch ?? 0) >= 0 ? "text-up" : "text-down"}`}>
+                            {signPct(ch)}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
             <span className="text-xs font-semibold text-foreground uppercase tracking-wider">{t("trade.orderbook")}</span>
