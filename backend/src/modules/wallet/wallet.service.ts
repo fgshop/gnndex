@@ -67,16 +67,13 @@ export class WalletService {
       throw new BadRequestException(`Unsupported asset: ${asset}`);
     }
 
-    // Resolve network
+    // Resolve network — auto-select first network if not provided
     let resolvedNetwork: string;
     if (coinConfig.type === "native") {
       resolvedNetwork = coinConfig.networks[0].network;
+    } else if (!input.network) {
+      resolvedNetwork = coinConfig.networks[0].network;
     } else {
-      if (!input.network) {
-        throw new BadRequestException(
-          `Network is required for ${asset}. Supported: ${coinConfig.networks.map((n) => n.network).join(", ")}`
-        );
-      }
       const networkCfg = getNetworkConfig(asset, input.network);
       if (!networkCfg) {
         throw new BadRequestException(
