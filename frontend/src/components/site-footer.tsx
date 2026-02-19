@@ -81,7 +81,7 @@ export function SiteFooter() {
                 </svg>
               </div>
               <span className="text-xl font-bold tracking-tight font-[var(--font-display)]">
-                Gnn<span className="text-primary">DEX</span>
+                Global<span className="text-primary">DEX</span>
               </span>
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">

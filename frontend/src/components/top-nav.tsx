@@ -84,7 +84,7 @@ export function TopNav() {
             </svg>
           </div>
           <span className="text-xl font-bold tracking-tight font-[var(--font-display)]">
-            Gnn<span className="text-primary">DEX</span>
+            Global<span className="text-primary">DEX</span>
           </span>
         </Link>
 
