@@ -24,6 +24,10 @@ const SIZE_MAP = {
 */
 type CoinDef = { bg: string; path: string; vb?: string };
 
+const COIN_IMAGES: Record<string, string> = {
+  G99: "/coins/g99.png",
+};
+
 const COIN_SVGS: Record<string, CoinDef> = {
   BTC: {
     bg: "#F7931A",
@@ -139,6 +143,19 @@ export function CoinIcon({ symbol, size = "md", className }: CoinIconProps) {
   const coin = symbol.split("-")[0].toUpperCase();
   const def = COIN_SVGS[coin];
   const px = SIZE_PX[size] ?? 24;
+  const imgSrc = COIN_IMAGES[coin];
+
+  if (imgSrc) {
+    return (
+      <img
+        src={imgSrc}
+        alt={coin}
+        width={px}
+        height={px}
+        className={cn("shrink-0 rounded-full select-none object-cover", SIZE_MAP[size], className)}
+      />
+    );
+  }
 
   if (def) {
     return (
