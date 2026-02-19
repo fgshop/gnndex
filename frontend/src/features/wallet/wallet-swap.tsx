@@ -26,7 +26,7 @@ const MOCK_PRICES: Record<string, number> = {
   BNB: 310,
   XRP: 0.62,
   SBK: 0.45,
-  G99: 0.12,
+  G99: 1.45,
   USDT: 1,
 };
 
@@ -498,7 +498,7 @@ function SwapPanel({ balances }: { balances: BalanceRow[] }) {
               <ArrowRightIcon className="h-3 w-3 text-muted-foreground" />
               <CoinIcon symbol={toAsset} size="xs" />
               {toAsset}
-              <span className="ml-1 text-xs text-muted-foreground">via GnnDEX</span>
+              <span className="ml-1 text-xs text-muted-foreground">via GlobalDEX</span>
             </span>
           </div>
 

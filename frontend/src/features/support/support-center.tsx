@@ -418,8 +418,8 @@ export function SupportCenter() {
         "@type": "WebPage",
         "@id": `${siteUrl}/support#webpage`,
         url: `${siteUrl}/support`,
-        name: "Help Center | GnnDEX",
-        description: "Get help with your GnnDEX account, trading, deposits, withdrawals, and security.",
+        name: "Help Center | GlobalDEX",
+        description: "Get help with your GlobalDEX account, trading, deposits, withdrawals, and security.",
         inLanguage: "en",
       },
       {

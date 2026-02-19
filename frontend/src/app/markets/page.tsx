@@ -422,7 +422,7 @@ export default function MarketsPage() {
           "@type": "WebPage",
           "@id": `${siteUrl}/markets#webpage`,
           url: `${siteUrl}/markets`,
-          name: "Markets | GnnDEX",
+          name: "Markets | GlobalDEX",
           description: "Real-time cryptocurrency prices, 24h changes, and trading volumes.",
           inLanguage: "en"
         },
@@ -433,7 +433,7 @@ export default function MarketsPage() {
             { "@type": "ListItem", position: 2, name: "Markets", item: `${siteUrl}/markets` }
           ]
         },
-        { "@type": "ItemList", name: "GnnDEX Market List", itemListOrder: "https://schema.org/ItemListOrderDescending", numberOfItems: itemList.length, itemListElement: itemList }
+        { "@type": "ItemList", name: "GlobalDEX Market List", itemListOrder: "https://schema.org/ItemListOrderDescending", numberOfItems: itemList.length, itemListElement: itemList }
       ]
     };
   }, [rows]);

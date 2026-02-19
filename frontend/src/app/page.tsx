@@ -62,13 +62,13 @@ const homeJsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      name: "GnnDEX",
+      name: "GlobalDEX",
       url: siteUrl,
       logo: `${siteUrl}/opengraph-image`,
     },
     {
       "@type": "WebSite",
-      name: "GnnDEX",
+      name: "GlobalDEX",
       url: siteUrl,
       inLanguage: "en",
       potentialAction: {
@@ -464,7 +464,7 @@ function FeaturedMarketsGrid({
   );
 }
 
-function WhyGnnDEXSection() {
+function WhyGlobalDEXSection() {
   const { t } = useTranslation();
   const section = useInView();
 
@@ -988,8 +988,8 @@ export default function HomePage() {
       {/* 3. Featured Markets */}
       <FeaturedMarketsGrid rows={displayRows} sparklines={sparklineBySymbol} />
 
-      {/* 4. Why GnnDEX */}
-      <WhyGnnDEXSection />
+      {/* 4. Why GlobalDEX */}
+      <WhyGlobalDEXSection />
 
       {/* 5. Platform Stats */}
       <PlatformStatsSection />

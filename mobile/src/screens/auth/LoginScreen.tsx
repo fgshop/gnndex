@@ -19,7 +19,7 @@ export function LoginScreen({ navigation }: Props) {
   const { login } = useMobileAuth();
   const { t } = useTranslation();
   const [email, setEmail] = useState("trader@gnndex.com");
-  const [password, setPassword] = useState("GnnDEX!2345");
+  const [password, setPassword] = useState("GlobalDEX!2345");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -42,7 +42,7 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>GnnDEX</Text>
+        <Text style={styles.title}>GlobalDEX</Text>
         <Text style={styles.subtitle}>{t("auth.signInSubtitle")}</Text>
 
         <View style={styles.form}>

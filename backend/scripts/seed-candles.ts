@@ -11,7 +11,7 @@ import { PrismaClient } from "@prisma/client";
 
 const SYMBOLS: { symbol: string; basePrice: number; pricePrecision: number }[] = [
   { symbol: "SBK-USDT", basePrice: 0.824, pricePrecision: 6 },
-  { symbol: "G99-USDT", basePrice: 0.162, pricePrecision: 6 }
+  { symbol: "G99-USDT", basePrice: 1.450, pricePrecision: 6 }
 ];
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;

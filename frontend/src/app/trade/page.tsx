@@ -795,7 +795,7 @@ export default function TradePage() {
           "@type": "WebPage",
           "@id": `${siteUrl}/trade#webpage`,
           url: `${siteUrl}/trade`,
-          name: `Trade ${symbol} | GnnDEX`,
+          name: `Trade ${symbol} | GlobalDEX`,
           description: `${symbol} real-time chart, orderbook, and trading`,
           inLanguage: "ko-KR",
         },

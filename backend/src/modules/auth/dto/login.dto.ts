@@ -6,7 +6,7 @@ export class LoginDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: "GnnDEX!2345" })
+  @ApiProperty({ example: "GlobalDEX!2345" })
   @IsString()
   password!: string;
 

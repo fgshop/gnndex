@@ -6,7 +6,7 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: "GnnDEX!2345" })
+  @ApiProperty({ example: "GlobalDEX!2345" })
   @IsString()
   @MinLength(8)
   password!: string;

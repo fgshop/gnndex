@@ -160,7 +160,7 @@ async function login(baseUrl: string, email: string, password: string) {
 async function main() {
   const prisma = new PrismaClient();
   const suffix = `${Date.now()}.${Math.floor(Math.random() * 100000)}`;
-  const password = "GnnDEX!2345";
+  const password = "GlobalDEX!2345";
 
   const writerEmail = createEmail("admin-writer", suffix);
   const limitedEmail = createEmail("admin-limited", suffix);

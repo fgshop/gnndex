@@ -6,7 +6,7 @@ import { apiBaseUrl } from "../lib/api";
 import { getApiErrorMessage } from "../lib/api-error";
 
 const TEMP_ADMIN_EMAIL = "admin@gnndex.com";
-const TEMP_ADMIN_PASSWORD = "GnnDEX!2345";
+const TEMP_ADMIN_PASSWORD = "GlobalDEX!2345";
 
 function toHttpErrorMessage(status: number, payload: unknown, fallback: string): string {
   const detail = getApiErrorMessage(payload, fallback);

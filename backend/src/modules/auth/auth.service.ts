@@ -255,7 +255,7 @@ export class AuthService {
   async setupTwoFactor(input: SetupTwoFactorDto) {
     const user = await this.validateCredentials(input.email, input.password);
     const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(user.email, "GnnDEX", secret);
+    const otpauthUrl = authenticator.keyuri(user.email, "GlobalDEX", secret);
 
     await this.prisma.userSecurity.upsert({
       where: { userId: user.id },

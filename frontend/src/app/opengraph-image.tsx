@@ -34,7 +34,7 @@ export default function OpenGraphImage() {
             letterSpacing: 0.4
           }}
         >
-          GnnDEX Global Exchange
+          GlobalDEX Global Exchange
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ fontSize: 72, fontWeight: 800, lineHeight: 1.05 }}>

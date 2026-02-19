@@ -186,7 +186,7 @@ async function main() {
   const adminTargetEmail = createEmail("admin-target", suffix);
   const adminLimitedEmail = createEmail("admin-limited", suffix);
   const traderEmail = createEmail("trader", suffix);
-  const password = "GnnDEX!2345";
+  const password = "GlobalDEX!2345";
 
   let actorUserId: string | null = null;
   let targetUserId: string | null = null;

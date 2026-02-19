@@ -2,7 +2,7 @@ import type { Messages } from "../locale-context";
 
 const messages: Record<string, Messages> = {
   en: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Admin Console",
     "admin.noSession": "No session",
     "admin.logout": "Logout",
@@ -43,7 +43,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Select language",
   },
   fr: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Console d'administration",
     "admin.noSession": "Pas de session",
     "admin.logout": "D\u00e9connexion",
@@ -84,7 +84,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Choisir la langue",
   },
   es: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Consola de administraci\u00f3n",
     "admin.noSession": "Sin sesi\u00f3n",
     "admin.logout": "Cerrar sesi\u00f3n",
@@ -125,7 +125,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Seleccionar idioma",
   },
   it: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Console di amministrazione",
     "admin.noSession": "Nessuna sessione",
     "admin.logout": "Esci",
@@ -166,7 +166,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Seleziona lingua",
   },
   de: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Administrationskonsole",
     "admin.noSession": "Keine Sitzung",
     "admin.logout": "Abmelden",
@@ -207,7 +207,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Sprache w\u00e4hlen",
   },
   zh: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "\u7ba1\u7406\u63a7\u5236\u53f0",
     "admin.noSession": "\u65e0\u4f1a\u8bdd",
     "admin.logout": "\u9000\u51fa",
@@ -248,7 +248,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "\u9009\u62e9\u8bed\u8a00",
   },
   ja: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "\u7ba1\u7406\u30b3\u30f3\u30bd\u30fc\u30eb",
     "admin.noSession": "\u30bb\u30c3\u30b7\u30e7\u30f3\u306a\u3057",
     "admin.logout": "\u30ed\u30b0\u30a2\u30a6\u30c8",
@@ -289,7 +289,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "\u8a00\u8a9e\u9078\u629e",
   },
   ko: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "\uad00\ub9ac \ucf58\uc194",
     "admin.noSession": "\uc138\uc158 \uc5c6\uc74c",
     "admin.logout": "\ub85c\uadf8\uc544\uc6c3",
@@ -330,7 +330,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "\uc5b8\uc5b4 \uc120\ud0dd",
   },
   th: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "\u0e04\u0e2d\u0e19\u0e42\u0e0b\u0e25\u0e1c\u0e39\u0e49\u0e14\u0e39\u0e41\u0e25\u0e23\u0e30\u0e1a\u0e1a",
     "admin.noSession": "\u0e44\u0e21\u0e48\u0e21\u0e35\u0e40\u0e0b\u0e2a\u0e0a\u0e31\u0e19",
     "admin.logout": "\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e23\u0e30\u0e1a\u0e1a",
@@ -371,7 +371,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e20\u0e32\u0e29\u0e32",
   },
   vi: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "B\u1ea3ng \u0111i\u1ec1u khi\u1ec3n qu\u1ea3n tr\u1ecb",
     "admin.noSession": "Kh\u00f4ng c\u00f3 phi\u00ean",
     "admin.logout": "\u0110\u0103ng xu\u1ea5t",
@@ -412,7 +412,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Ch\u1ecdn ng\u00f4n ng\u1eef",
   },
   id: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "Konsol Administrasi",
     "admin.noSession": "Tidak ada sesi",
     "admin.logout": "Keluar",
@@ -453,7 +453,7 @@ const messages: Record<string, Messages> = {
     "lang.select": "Pilih bahasa",
   },
   ru: {
-    "admin.brand": "GnnDEX Ops",
+    "admin.brand": "GlobalDEX Ops",
     "admin.subtitle": "\u041a\u043e\u043d\u0441\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430",
     "admin.noSession": "\u041d\u0435\u0442 \u0441\u0435\u0441\u0441\u0438\u0438",
     "admin.logout": "\u0412\u044b\u0439\u0442\u0438",

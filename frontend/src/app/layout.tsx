@@ -12,18 +12,18 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "GnnDEX | Global Digital Asset Exchange",
-    template: "%s | GnnDEX"
+    default: "GlobalDEX | Global Digital Asset Exchange",
+    template: "%s | GlobalDEX"
   },
-  description: "글로벌 디지털 자산 거래소 GnnDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
+  description: "글로벌 디지털 자산 거래소 GlobalDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
   alternates: {
     canonical: "/"
   },
   openGraph: {
-    title: "GnnDEX | Global Digital Asset Exchange",
-    description: "글로벌 디지털 자산 거래소 GnnDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
+    title: "GlobalDEX | Global Digital Asset Exchange",
+    description: "글로벌 디지털 자산 거래소 GlobalDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
     url: siteUrl,
-    siteName: "GnnDEX",
+    siteName: "GlobalDEX",
     locale: "ko_KR",
     type: "website",
     images: [
@@ -31,14 +31,14 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "GnnDEX Global Digital Asset Exchange"
+        alt: "GlobalDEX Global Digital Asset Exchange"
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "GnnDEX | Global Digital Asset Exchange",
-    description: "글로벌 디지털 자산 거래소 GnnDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
+    title: "GlobalDEX | Global Digital Asset Exchange",
+    description: "글로벌 디지털 자산 거래소 GlobalDEX. 실시간 시세, 안정적인 거래, 보안 중심 운영.",
     images: ["/opengraph-image"]
   },
   robots: {

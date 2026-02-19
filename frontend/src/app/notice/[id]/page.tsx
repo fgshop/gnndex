@@ -54,23 +54,23 @@ export async function generateMetadata({ params }: NoticeDetailPageProps): Promi
 
   if (!notice) {
     return {
-      title: "공지사항을 찾을 수 없습니다 | GnnDEX"
+      title: "공지사항을 찾을 수 없습니다 | GlobalDEX"
     };
   }
 
   const canonicalPath = `/notice/${encodeURIComponent(decodedId)}`;
 
   return {
-    title: `${notice.title} | GnnDEX 공지사항`,
+    title: `${notice.title} | GlobalDEX 공지사항`,
     description: notice.summary,
     alternates: {
       canonical: canonicalPath
     },
     openGraph: {
-      title: `${notice.title} | GnnDEX 공지사항`,
+      title: `${notice.title} | GlobalDEX 공지사항`,
       description: notice.summary,
       url: `${siteUrl}${canonicalPath}`,
-      siteName: "GnnDEX",
+      siteName: "GlobalDEX",
       locale: "ko_KR",
       type: "article",
       images: [
@@ -84,7 +84,7 @@ export async function generateMetadata({ params }: NoticeDetailPageProps): Promi
     },
     twitter: {
       card: "summary_large_image",
-      title: `${notice.title} | GnnDEX 공지사항`,
+      title: `${notice.title} | GlobalDEX 공지사항`,
       description: notice.summary,
       images: [`${siteUrl}${canonicalPath}/opengraph-image`]
     }
@@ -116,7 +116,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
     mainEntityOfPage: canonicalUrl,
     publisher: {
       "@type": "Organization",
-      name: "GnnDEX",
+      name: "GlobalDEX",
       url: siteUrl
     }
   };

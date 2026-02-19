@@ -46,7 +46,7 @@ export default async function NoticeOpenGraphImage({ params }: NoticeOgImageProp
   const apiNotice = await fetchNoticeForOg(decodedId);
   const fallback = getSupportNoticeById(decodedId);
 
-  const title = apiNotice?.title ?? fallback?.title ?? "GnnDEX 공지사항";
+  const title = apiNotice?.title ?? fallback?.title ?? "GlobalDEX 공지사항";
   const summary = apiNotice?.summary ?? fallback?.summary ?? "거래소 운영 공지와 점검 정보를 확인하세요.";
   const date = apiNotice?.date ?? fallback?.date ?? "";
 
@@ -76,7 +76,7 @@ export default async function NoticeOpenGraphImage({ params }: NoticeOgImageProp
             fontWeight: 700
           }}
         >
-          GnnDEX Notice
+          GlobalDEX Notice
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 58, fontWeight: 800, lineHeight: 1.14 }}>{title}</div>

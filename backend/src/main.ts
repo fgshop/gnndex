@@ -49,8 +49,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   const config = new DocumentBuilder()
-    .setTitle("GnnDEX API")
-    .setDescription("GnnDEX exchange backend API")
+    .setTitle("GlobalDEX API")
+    .setDescription("GlobalDEX exchange backend API")
     .setVersion("1.0.0")
     .addBearerAuth(
       {

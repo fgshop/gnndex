@@ -4,7 +4,7 @@ const messages: Record<string, Messages> = {
   en: {
     // Login — header
     "auth.login.title": "Welcome Back",
-    "auth.login.subtitle": "Sign in to your GnnDEX account to continue trading",
+    "auth.login.subtitle": "Sign in to your GlobalDEX account to continue trading",
 
     // Login — field labels & placeholders
     "auth.login.emailLabel": "Email Address",
@@ -26,7 +26,7 @@ const messages: Record<string, Messages> = {
     "auth.login.submitting": "Signing in...",
 
     // Login — footer
-    "auth.login.newToGnndex": "New to GnnDEX?",
+    "auth.login.newToGnndex": "New to GlobalDEX?",
     "auth.login.createFreeAccount": "Create a free account",
     "auth.login.startTrading": "and start trading in minutes.",
 
@@ -41,7 +41,7 @@ const messages: Record<string, Messages> = {
 
     // Register — header
     "auth.register.title": "Create Account",
-    "auth.register.subtitle": "Start trading on GnnDEX in just a few minutes",
+    "auth.register.subtitle": "Start trading on GlobalDEX in just a few minutes",
 
     // Register — field labels & placeholders
     "auth.register.emailLabel": "Email Address",
@@ -64,7 +64,7 @@ const messages: Record<string, Messages> = {
     "auth.register.passwordsMatch": "Passwords match",
 
     // Register — terms
-    "auth.register.termsAgree": "I agree to the GnnDEX",
+    "auth.register.termsAgree": "I agree to the GlobalDEX",
     "auth.register.termsOfService": "Terms of Service",
     "auth.register.termsAnd": "and",
     "auth.register.privacyPolicy": "Privacy Policy",
@@ -96,7 +96,7 @@ const messages: Record<string, Messages> = {
 
   fr: {
     "auth.login.title": "Bon retour",
-    "auth.login.subtitle": "Connectez-vous à votre compte GnnDEX pour continuer à trader",
+    "auth.login.subtitle": "Connectez-vous à votre compte GlobalDEX pour continuer à trader",
     "auth.login.emailLabel": "Adresse e-mail",
     "auth.login.emailPlaceholder": "vous@exemple.com",
     "auth.login.passwordLabel": "Mot de passe",
@@ -110,7 +110,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Mot de passe oublié ?",
     "auth.login.submit": "Se connecter",
     "auth.login.submitting": "Connexion en cours...",
-    "auth.login.newToGnndex": "Nouveau sur GnnDEX ?",
+    "auth.login.newToGnndex": "Nouveau sur GlobalDEX ?",
     "auth.login.createFreeAccount": "Créez un compte gratuit",
     "auth.login.startTrading": "et commencez à trader en quelques minutes.",
     "auth.login.errorEmailRequired": "Veuillez entrer votre adresse e-mail.",
@@ -123,7 +123,7 @@ const messages: Record<string, Messages> = {
       "Impossible de se connecter au serveur. Veuillez vérifier votre connexion et réessayer.",
 
     "auth.register.title": "Créer un compte",
-    "auth.register.subtitle": "Commencez à trader sur GnnDEX en quelques minutes",
+    "auth.register.subtitle": "Commencez à trader sur GlobalDEX en quelques minutes",
     "auth.register.emailLabel": "Adresse e-mail",
     "auth.register.emailPlaceholder": "vous@exemple.com",
     "auth.register.passwordLabel": "Mot de passe",
@@ -164,7 +164,7 @@ const messages: Record<string, Messages> = {
 
   es: {
     "auth.login.title": "Bienvenido de nuevo",
-    "auth.login.subtitle": "Inicia sesión en tu cuenta de GnnDEX para seguir operando",
+    "auth.login.subtitle": "Inicia sesión en tu cuenta de GlobalDEX para seguir operando",
     "auth.login.emailLabel": "Correo electrónico",
     "auth.login.emailPlaceholder": "tu@ejemplo.com",
     "auth.login.passwordLabel": "Contraseña",
@@ -178,7 +178,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "¿Olvidaste tu contraseña?",
     "auth.login.submit": "Iniciar sesión",
     "auth.login.submitting": "Iniciando sesión...",
-    "auth.login.newToGnndex": "¿Nuevo en GnnDEX?",
+    "auth.login.newToGnndex": "¿Nuevo en GlobalDEX?",
     "auth.login.createFreeAccount": "Crea una cuenta gratuita",
     "auth.login.startTrading": "y empieza a operar en minutos.",
     "auth.login.errorEmailRequired": "Por favor, introduce tu correo electrónico.",
@@ -192,7 +192,7 @@ const messages: Record<string, Messages> = {
       "No se pudo conectar al servidor. Por favor, verifica tu conexión e inténtalo de nuevo.",
 
     "auth.register.title": "Crear cuenta",
-    "auth.register.subtitle": "Empieza a operar en GnnDEX en solo unos minutos",
+    "auth.register.subtitle": "Empieza a operar en GlobalDEX en solo unos minutos",
     "auth.register.emailLabel": "Correo electrónico",
     "auth.register.emailPlaceholder": "tu@ejemplo.com",
     "auth.register.passwordLabel": "Contraseña",
@@ -234,7 +234,7 @@ const messages: Record<string, Messages> = {
 
   it: {
     "auth.login.title": "Bentornato",
-    "auth.login.subtitle": "Accedi al tuo account GnnDEX per continuare a fare trading",
+    "auth.login.subtitle": "Accedi al tuo account GlobalDEX per continuare a fare trading",
     "auth.login.emailLabel": "Indirizzo e-mail",
     "auth.login.emailPlaceholder": "tu@esempio.com",
     "auth.login.passwordLabel": "Password",
@@ -248,7 +248,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Password dimenticata?",
     "auth.login.submit": "Accedi",
     "auth.login.submitting": "Accesso in corso...",
-    "auth.login.newToGnndex": "Nuovo su GnnDEX?",
+    "auth.login.newToGnndex": "Nuovo su GlobalDEX?",
     "auth.login.createFreeAccount": "Crea un account gratuito",
     "auth.login.startTrading": "e inizia a fare trading in pochi minuti.",
     "auth.login.errorEmailRequired": "Inserisci il tuo indirizzo e-mail.",
@@ -261,7 +261,7 @@ const messages: Record<string, Messages> = {
       "Impossibile connettersi al server. Verifica la tua connessione e riprova.",
 
     "auth.register.title": "Crea un account",
-    "auth.register.subtitle": "Inizia a fare trading su GnnDEX in pochi minuti",
+    "auth.register.subtitle": "Inizia a fare trading su GlobalDEX in pochi minuti",
     "auth.register.emailLabel": "Indirizzo e-mail",
     "auth.register.emailPlaceholder": "tu@esempio.com",
     "auth.register.passwordLabel": "Password",
@@ -302,7 +302,7 @@ const messages: Record<string, Messages> = {
 
   de: {
     "auth.login.title": "Willkommen zurück",
-    "auth.login.subtitle": "Melden Sie sich bei Ihrem GnnDEX-Konto an, um weiterzuhandeln",
+    "auth.login.subtitle": "Melden Sie sich bei Ihrem GlobalDEX-Konto an, um weiterzuhandeln",
     "auth.login.emailLabel": "E-Mail-Adresse",
     "auth.login.emailPlaceholder": "sie@beispiel.com",
     "auth.login.passwordLabel": "Passwort",
@@ -316,7 +316,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Passwort vergessen?",
     "auth.login.submit": "Anmelden",
     "auth.login.submitting": "Anmeldung läuft...",
-    "auth.login.newToGnndex": "Neu bei GnnDEX?",
+    "auth.login.newToGnndex": "Neu bei GlobalDEX?",
     "auth.login.createFreeAccount": "Erstellen Sie ein kostenloses Konto",
     "auth.login.startTrading": "und starten Sie in wenigen Minuten mit dem Handel.",
     "auth.login.errorEmailRequired": "Bitte geben Sie Ihre E-Mail-Adresse ein.",
@@ -330,7 +330,7 @@ const messages: Record<string, Messages> = {
       "Verbindung zum Server nicht möglich. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
 
     "auth.register.title": "Konto erstellen",
-    "auth.register.subtitle": "Beginnen Sie in wenigen Minuten mit dem Handel auf GnnDEX",
+    "auth.register.subtitle": "Beginnen Sie in wenigen Minuten mit dem Handel auf GlobalDEX",
     "auth.register.emailLabel": "E-Mail-Adresse",
     "auth.register.emailPlaceholder": "sie@beispiel.com",
     "auth.register.passwordLabel": "Passwort",
@@ -372,7 +372,7 @@ const messages: Record<string, Messages> = {
 
   zh: {
     "auth.login.title": "欢迎回来",
-    "auth.login.subtitle": "登录您的 GnnDEX 账户以继续交易",
+    "auth.login.subtitle": "登录您的 GlobalDEX 账户以继续交易",
     "auth.login.emailLabel": "电子邮箱",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "密码",
@@ -386,7 +386,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "忘记密码？",
     "auth.login.submit": "登录",
     "auth.login.submitting": "正在登录...",
-    "auth.login.newToGnndex": "初次使用 GnnDEX？",
+    "auth.login.newToGnndex": "初次使用 GlobalDEX？",
     "auth.login.createFreeAccount": "创建免费账户",
     "auth.login.startTrading": "即刻开始交易。",
     "auth.login.errorEmailRequired": "请输入您的电子邮箱。",
@@ -397,7 +397,7 @@ const messages: Record<string, Messages> = {
     "auth.login.errorNetwork": "无法连接到服务器，请检查网络连接后重试。",
 
     "auth.register.title": "创建账户",
-    "auth.register.subtitle": "只需几分钟即可在 GnnDEX 开始交易",
+    "auth.register.subtitle": "只需几分钟即可在 GlobalDEX 开始交易",
     "auth.register.emailLabel": "电子邮箱",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "密码",
@@ -412,7 +412,7 @@ const messages: Record<string, Messages> = {
     "auth.register.strengthStrong": "强",
     "auth.register.passwordsDoNotMatch": "密码不匹配",
     "auth.register.passwordsMatch": "密码匹配",
-    "auth.register.termsAgree": "我同意 GnnDEX",
+    "auth.register.termsAgree": "我同意 GlobalDEX",
     "auth.register.termsOfService": "服务条款",
     "auth.register.termsAnd": "和",
     "auth.register.privacyPolicy": "隐私政策",
@@ -433,7 +433,7 @@ const messages: Record<string, Messages> = {
 
   ja: {
     "auth.login.title": "おかえりなさい",
-    "auth.login.subtitle": "GnnDEX アカウントにログインして取引を続けましょう",
+    "auth.login.subtitle": "GlobalDEX アカウントにログインして取引を続けましょう",
     "auth.login.emailLabel": "メールアドレス",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "パスワード",
@@ -447,7 +447,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "パスワードをお忘れですか？",
     "auth.login.submit": "ログイン",
     "auth.login.submitting": "ログイン中...",
-    "auth.login.newToGnndex": "GnnDEX が初めてですか？",
+    "auth.login.newToGnndex": "GlobalDEX が初めてですか？",
     "auth.login.createFreeAccount": "無料アカウントを作成",
     "auth.login.startTrading": "して、数分で取引を始めましょう。",
     "auth.login.errorEmailRequired": "メールアドレスを入力してください。",
@@ -460,7 +460,7 @@ const messages: Record<string, Messages> = {
       "サーバーに接続できません。接続を確認してもう一度お試しください。",
 
     "auth.register.title": "アカウント作成",
-    "auth.register.subtitle": "数分で GnnDEX での取引を始められます",
+    "auth.register.subtitle": "数分で GlobalDEX での取引を始められます",
     "auth.register.emailLabel": "メールアドレス",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "パスワード",
@@ -475,7 +475,7 @@ const messages: Record<string, Messages> = {
     "auth.register.strengthStrong": "強い",
     "auth.register.passwordsDoNotMatch": "パスワードが一致しません",
     "auth.register.passwordsMatch": "パスワードが一致しました",
-    "auth.register.termsAgree": "GnnDEX の",
+    "auth.register.termsAgree": "GlobalDEX の",
     "auth.register.termsOfService": "利用規約",
     "auth.register.termsAnd": "および",
     "auth.register.privacyPolicy": "プライバシーポリシー",
@@ -500,7 +500,7 @@ const messages: Record<string, Messages> = {
 
   ko: {
     "auth.login.title": "다시 오신 것을 환영합니다",
-    "auth.login.subtitle": "GnnDEX 계정에 로그인하여 거래를 계속하세요",
+    "auth.login.subtitle": "GlobalDEX 계정에 로그인하여 거래를 계속하세요",
     "auth.login.emailLabel": "이메일 주소",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "비밀번호",
@@ -514,7 +514,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "비밀번호를 잊으셨나요?",
     "auth.login.submit": "로그인",
     "auth.login.submitting": "로그인 중...",
-    "auth.login.newToGnndex": "GnnDEX가 처음이신가요?",
+    "auth.login.newToGnndex": "GlobalDEX가 처음이신가요?",
     "auth.login.createFreeAccount": "무료 계정 만들기",
     "auth.login.startTrading": "몇 분 안에 거래를 시작하세요.",
     "auth.login.errorEmailRequired": "이메일 주소를 입력해 주세요.",
@@ -527,7 +527,7 @@ const messages: Record<string, Messages> = {
       "서버에 연결할 수 없습니다. 연결 상태를 확인한 후 다시 시도해 주세요.",
 
     "auth.register.title": "계정 만들기",
-    "auth.register.subtitle": "몇 분 만에 GnnDEX에서 거래를 시작하세요",
+    "auth.register.subtitle": "몇 분 만에 GlobalDEX에서 거래를 시작하세요",
     "auth.register.emailLabel": "이메일 주소",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "비밀번호",
@@ -542,7 +542,7 @@ const messages: Record<string, Messages> = {
     "auth.register.strengthStrong": "강함",
     "auth.register.passwordsDoNotMatch": "비밀번호가 일치하지 않습니다",
     "auth.register.passwordsMatch": "비밀번호가 일치합니다",
-    "auth.register.termsAgree": "GnnDEX",
+    "auth.register.termsAgree": "GlobalDEX",
     "auth.register.termsOfService": "이용약관",
     "auth.register.termsAnd": "및",
     "auth.register.privacyPolicy": "개인정보 처리방침",
@@ -567,7 +567,7 @@ const messages: Record<string, Messages> = {
 
   th: {
     "auth.login.title": "ยินดีต้อนรับกลับมา",
-    "auth.login.subtitle": "เข้าสู่ระบบบัญชี GnnDEX ของคุณเพื่อเทรดต่อ",
+    "auth.login.subtitle": "เข้าสู่ระบบบัญชี GlobalDEX ของคุณเพื่อเทรดต่อ",
     "auth.login.emailLabel": "ที่อยู่อีเมล",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "รหัสผ่าน",
@@ -581,7 +581,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "ลืมรหัสผ่าน?",
     "auth.login.submit": "เข้าสู่ระบบ",
     "auth.login.submitting": "กำลังเข้าสู่ระบบ...",
-    "auth.login.newToGnndex": "ใหม่กับ GnnDEX?",
+    "auth.login.newToGnndex": "ใหม่กับ GlobalDEX?",
     "auth.login.createFreeAccount": "สร้างบัญชีฟรี",
     "auth.login.startTrading": "แล้วเริ่มเทรดได้ในไม่กี่นาที",
     "auth.login.errorEmailRequired": "กรุณากรอกที่อยู่อีเมลของคุณ",
@@ -594,7 +594,7 @@ const messages: Record<string, Messages> = {
       "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อและลองใหม่อีกครั้ง",
 
     "auth.register.title": "สร้างบัญชี",
-    "auth.register.subtitle": "เริ่มเทรดบน GnnDEX ได้ในไม่กี่นาที",
+    "auth.register.subtitle": "เริ่มเทรดบน GlobalDEX ได้ในไม่กี่นาที",
     "auth.register.emailLabel": "ที่อยู่อีเมล",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "รหัสผ่าน",
@@ -634,7 +634,7 @@ const messages: Record<string, Messages> = {
 
   vi: {
     "auth.login.title": "Chào mừng trở lại",
-    "auth.login.subtitle": "Đăng nhập vào tài khoản GnnDEX để tiếp tục giao dịch",
+    "auth.login.subtitle": "Đăng nhập vào tài khoản GlobalDEX để tiếp tục giao dịch",
     "auth.login.emailLabel": "Địa chỉ email",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "Mật khẩu",
@@ -648,7 +648,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Quên mật khẩu?",
     "auth.login.submit": "Đăng nhập",
     "auth.login.submitting": "Đang đăng nhập...",
-    "auth.login.newToGnndex": "Mới sử dụng GnnDEX?",
+    "auth.login.newToGnndex": "Mới sử dụng GlobalDEX?",
     "auth.login.createFreeAccount": "Tạo tài khoản miễn phí",
     "auth.login.startTrading": "và bắt đầu giao dịch trong vài phút.",
     "auth.login.errorEmailRequired": "Vui lòng nhập địa chỉ email của bạn.",
@@ -661,7 +661,7 @@ const messages: Record<string, Messages> = {
       "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại.",
 
     "auth.register.title": "Tạo tài khoản",
-    "auth.register.subtitle": "Bắt đầu giao dịch trên GnnDEX chỉ trong vài phút",
+    "auth.register.subtitle": "Bắt đầu giao dịch trên GlobalDEX chỉ trong vài phút",
     "auth.register.emailLabel": "Địa chỉ email",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "Mật khẩu",
@@ -701,7 +701,7 @@ const messages: Record<string, Messages> = {
 
   id: {
     "auth.login.title": "Selamat Datang Kembali",
-    "auth.login.subtitle": "Masuk ke akun GnnDEX Anda untuk melanjutkan perdagangan",
+    "auth.login.subtitle": "Masuk ke akun GlobalDEX Anda untuk melanjutkan perdagangan",
     "auth.login.emailLabel": "Alamat Email",
     "auth.login.emailPlaceholder": "anda@contoh.com",
     "auth.login.passwordLabel": "Kata Sandi",
@@ -715,7 +715,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Lupa kata sandi?",
     "auth.login.submit": "Masuk",
     "auth.login.submitting": "Sedang masuk...",
-    "auth.login.newToGnndex": "Baru di GnnDEX?",
+    "auth.login.newToGnndex": "Baru di GlobalDEX?",
     "auth.login.createFreeAccount": "Buat akun gratis",
     "auth.login.startTrading": "dan mulai berdagang dalam hitungan menit.",
     "auth.login.errorEmailRequired": "Silakan masukkan alamat email Anda.",
@@ -728,7 +728,7 @@ const messages: Record<string, Messages> = {
       "Tidak dapat terhubung ke server. Silakan periksa koneksi Anda dan coba lagi.",
 
     "auth.register.title": "Buat Akun",
-    "auth.register.subtitle": "Mulai berdagang di GnnDEX dalam hitungan menit",
+    "auth.register.subtitle": "Mulai berdagang di GlobalDEX dalam hitungan menit",
     "auth.register.emailLabel": "Alamat Email",
     "auth.register.emailPlaceholder": "anda@contoh.com",
     "auth.register.passwordLabel": "Kata Sandi",
@@ -768,7 +768,7 @@ const messages: Record<string, Messages> = {
 
   ru: {
     "auth.login.title": "С возвращением",
-    "auth.login.subtitle": "Войдите в свой аккаунт GnnDEX, чтобы продолжить торговлю",
+    "auth.login.subtitle": "Войдите в свой аккаунт GlobalDEX, чтобы продолжить торговлю",
     "auth.login.emailLabel": "Адрес электронной почты",
     "auth.login.emailPlaceholder": "you@example.com",
     "auth.login.passwordLabel": "Пароль",
@@ -782,7 +782,7 @@ const messages: Record<string, Messages> = {
     "auth.login.forgotPassword": "Забыли пароль?",
     "auth.login.submit": "Войти",
     "auth.login.submitting": "Выполняется вход...",
-    "auth.login.newToGnndex": "Впервые на GnnDEX?",
+    "auth.login.newToGnndex": "Впервые на GlobalDEX?",
     "auth.login.createFreeAccount": "Создайте бесплатный аккаунт",
     "auth.login.startTrading": "и начните торговать за считанные минуты.",
     "auth.login.errorEmailRequired": "Пожалуйста, введите адрес электронной почты.",
@@ -796,7 +796,7 @@ const messages: Record<string, Messages> = {
       "Не удалось подключиться к серверу. Проверьте подключение и попробуйте снова.",
 
     "auth.register.title": "Создать аккаунт",
-    "auth.register.subtitle": "Начните торговать на GnnDEX всего за несколько минут",
+    "auth.register.subtitle": "Начните торговать на GlobalDEX всего за несколько минут",
     "auth.register.emailLabel": "Адрес электронной почты",
     "auth.register.emailPlaceholder": "you@example.com",
     "auth.register.passwordLabel": "Пароль",

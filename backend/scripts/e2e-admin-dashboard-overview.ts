@@ -214,7 +214,7 @@ type DashboardOverviewResponse = {
 async function main() {
   const prisma = new PrismaClient();
   const suffix = `${Date.now()}.${Math.floor(Math.random() * 100000)}`;
-  const password = "GnnDEX!2345";
+  const password = "GlobalDEX!2345";
 
   const fullEmail = createEmail("admin-overview-full", suffix);
   const orderOnlyEmail = createEmail("admin-overview-order-only", suffix);

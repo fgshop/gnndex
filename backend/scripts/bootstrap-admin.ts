@@ -21,7 +21,7 @@ const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
 
 async function main() {
   const email = process.argv[2] ?? "admin@gnndex.com";
-  const password = process.argv[3] ?? "GnnDEX!2345";
+  const password = process.argv[3] ?? "GlobalDEX!2345";
 
   const prisma = new PrismaClient();
   const passwordHash = await hash(password, 10);

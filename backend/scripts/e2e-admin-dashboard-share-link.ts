@@ -156,7 +156,7 @@ type GetShareLinkResponse = {
 async function main() {
   const prisma = new PrismaClient();
   const suffix = `${Date.now()}.${Math.floor(Math.random() * 100000)}`;
-  const password = "GnnDEX!2345";
+  const password = "GlobalDEX!2345";
   const ownerEmail = createEmail("admin-share-owner", suffix);
   const viewerEmail = createEmail("admin-share-viewer", suffix);
 

@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: GnnDEX API
+  title: GlobalDEX API
   version: 1.19.0
-  description: GnnDEX trading exchange backend API v1 draft.
+  description: GlobalDEX trading exchange backend API v1 draft.
 servers:
   - url: http://localhost:4000/v1
     description: local

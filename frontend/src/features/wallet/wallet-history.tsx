@@ -197,7 +197,7 @@ export function WalletHistoryTab({ withdrawals }: { withdrawals: WithdrawalRow[]
     utils.book_append_sheet(wb, ws, "Transactions");
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    writeFileXLSX(wb, `GnnDEX_Transactions_${dateStr}.xlsx`);
+    writeFileXLSX(wb, `GlobalDEX_Transactions_${dateStr}.xlsx`);
   }, [filtered, t]);
 
   return (

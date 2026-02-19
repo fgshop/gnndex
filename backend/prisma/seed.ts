@@ -92,7 +92,7 @@ function toDecimal(value: number, fractionDigits: number): string {
 async function main() {
   const prisma = new PrismaClient();
   const marketRows = parseMarketSheet();
-  const passwordHash = await hash("GnnDEX!2345", 10);
+  const passwordHash = await hash("GlobalDEX!2345", 10);
 
   try {
     const admin = await prisma.user.upsert({
