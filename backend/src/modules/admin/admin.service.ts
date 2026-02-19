@@ -37,6 +37,8 @@ import { UpdateSupportTicketDto } from "./dto/update-support-ticket.dto";
 import { UpdateAdminPermissionsDto } from "./dto/update-admin-permissions.dto";
 import { UpdateCoinListingDto } from "./dto/update-coin-listing.dto";
 import { UpsertCoinCandlesDto } from "./dto/upsert-coin-candles.dto";
+import { ListDepositsQueryDto } from "./dto/list-deposits.dto";
+import { CreateAdminDepositDto } from "./dto/create-admin-deposit.dto";
 
 type StreamDashboardOverviewEvent = {
   eventId: string;
@@ -1779,6 +1781,152 @@ export class AdminService {
         total,
         totalPages: Math.max(Math.ceil(total / limit), 1)
       }
+    };
+  }
+
+  async listDeposits(query: ListDepositsQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const fromCreatedAt = query.fromCreatedAt ? new Date(query.fromCreatedAt) : undefined;
+    const toCreatedAt = query.toCreatedAt ? new Date(query.toCreatedAt) : undefined;
+
+    if (fromCreatedAt && toCreatedAt && fromCreatedAt.getTime() > toCreatedAt.getTime()) {
+      throw new BadRequestException("fromCreatedAt must be less than or equal to toCreatedAt");
+    }
+
+    const where: Prisma.WalletLedgerWhereInput = {
+      entryType: WalletLedgerEntryType.DEPOSIT,
+      asset: query.asset ? { equals: query.asset } : undefined,
+      createdAt: fromCreatedAt || toCreatedAt ? { gte: fromCreatedAt, lte: toCreatedAt } : undefined,
+      user: query.email
+        ? {
+            email: {
+              contains: query.email
+            }
+          }
+        : undefined
+    };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.walletLedger.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      }),
+      this.prisma.walletLedger.count({ where })
+    ]);
+
+    return {
+      items: items.map((ledger) => ({
+        id: ledger.id,
+        email: ledger.user.email,
+        asset: ledger.asset,
+        entryType: ledger.entryType,
+        amount: ledger.amount.toString(),
+        balanceBefore: ledger.balanceBefore.toString(),
+        balanceAfter: ledger.balanceAfter.toString(),
+        referenceType: ledger.referenceType,
+        referenceId: ledger.referenceId,
+        createdAt: ledger.createdAt.toISOString()
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1)
+      }
+    };
+  }
+
+  async createAdminDeposit(input: CreateAdminDepositDto, adminUserId: string) {
+    const delta = new Prisma.Decimal(input.amount);
+    if (delta.lte(0)) {
+      throw new BadRequestException("Amount must be positive");
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true, email: true }
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException("User not found with the provided email");
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const balance = await tx.walletBalance.upsert({
+        where: { userId_asset: { userId: targetUser.id, asset: input.asset } },
+        create: {
+          userId: targetUser.id,
+          asset: input.asset,
+          available: delta,
+          locked: new Prisma.Decimal(0)
+        },
+        update: {}
+      });
+
+      const balanceBefore = balance.available;
+      const balanceAfter = balanceBefore.add(delta);
+
+      const updated = await tx.walletBalance.update({
+        where: { id: balance.id },
+        data: { available: balanceAfter }
+      });
+
+      await tx.walletLedger.create({
+        data: {
+          userId: targetUser.id,
+          asset: input.asset,
+          entryType: WalletLedgerEntryType.DEPOSIT,
+          amount: delta,
+          balanceBefore,
+          balanceAfter,
+          referenceType: "ADMIN_DEPOSIT",
+          referenceId: null
+        }
+      });
+
+      return {
+        asset: updated.asset,
+        available: updated.available.toString(),
+        locked: updated.locked.toString(),
+        balanceBefore: balanceBefore.toString(),
+        balanceAfter: balanceAfter.toString()
+      };
+    });
+
+    const adminEmail = await this.resolveAdminEmail(adminUserId);
+    await this.auditService.log({
+      actorUserId: adminUserId,
+      actorEmail: adminEmail,
+      action: "ADMIN_DEPOSIT_CREATED",
+      targetType: "WALLET_BALANCE",
+      targetId: targetUser.id,
+      metadata: {
+        targetEmail: targetUser.email,
+        asset: input.asset,
+        amount: input.amount,
+        reason: input.reason ?? null,
+        balanceBefore: result.balanceBefore,
+        balanceAfter: result.balanceAfter
+      }
+    });
+
+    return {
+      email: targetUser.email,
+      asset: result.asset,
+      amount: input.amount,
+      balanceBefore: result.balanceBefore,
+      balanceAfter: result.balanceAfter
     };
   }
 

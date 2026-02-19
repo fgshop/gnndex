@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GnnDEX API
-  version: 1.18.0
+  version: 1.19.0
   description: GnnDEX trading exchange backend API v1 draft.
 servers:
   - url: http://localhost:4000/v1
@@ -721,6 +721,11 @@ paths:
                       - AUDIT_LOG_READ
                       - ADMIN_PERMISSION_READ
                       - ADMIN_PERMISSION_WRITE
+                      - COMPLIANCE_APPROVE
+                      - DEPOSIT_READ
+                      - DEPOSIT_CREATE
+                      - NOTICE_READ
+                      - NOTICE_WRITE
       responses:
         "200":
           description: Updated admin permissions
@@ -893,6 +898,161 @@ paths:
       responses:
         "201":
           description: Failed withdrawal
+  /admin/deposits:
+    get:
+      tags: [admin]
+      summary: List deposit ledger entries with filters and pagination
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: asset
+          schema:
+            type: string
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt lower bound (UTC ISO-8601)
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+          description: createdAt upper bound (UTC ISO-8601)
+      responses:
+        "200":
+          description: Deposit list
+    post:
+      tags: [admin]
+      summary: Create manual admin deposit for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, asset, amount]
+              properties:
+                email:
+                  type: string
+                  format: email
+                asset:
+                  type: string
+                amount:
+                  type: string
+                  description: Positive decimal amount
+                reason:
+                  type: string
+      responses:
+        "201":
+          description: Admin deposit created
+  /admin/notices:
+    get:
+      tags: [admin]
+      summary: List all notices (admin)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [NOTICE, EVENT, MAINTENANCE, UPDATE]
+        - in: query
+          name: isPublished
+          schema:
+            type: boolean
+        - in: query
+          name: isPinned
+          schema:
+            type: boolean
+        - in: query
+          name: fromCreatedAt
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: toCreatedAt
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Notice list (admin)
+    post:
+      tags: [admin]
+      summary: Create notice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoticeRequest"
+      responses:
+        "201":
+          description: Notice created
+  /admin/notices/{noticeId}:
+    patch:
+      tags: [admin]
+      summary: Update notice
+      parameters:
+        - name: noticeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoticeRequest"
+      responses:
+        "200":
+          description: Notice updated
+    delete:
+      tags: [admin]
+      summary: Delete notice
+      parameters:
+        - name: noticeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notice deleted
+  /admin/notices/{noticeId}/translate:
+    post:
+      tags: [admin]
+      summary: Auto-translate notice to all supported languages
+      parameters:
+        - name: noticeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Notice translated
   /admin/audit-logs:
     get:
       tags: [admin]
@@ -933,6 +1093,50 @@ paths:
       responses:
         "200":
           description: Audit logs list
+  /notices:
+    get:
+      tags: [notice]
+      summary: List published notices (public)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [NOTICE, EVENT, MAINTENANCE, UPDATE]
+        - in: query
+          name: locale
+          schema:
+            type: string
+          description: Locale for translated content (e.g. en, ja, ko)
+      responses:
+        "200":
+          description: Published notice list
+  /notices/{noticeId}:
+    get:
+      tags: [notice]
+      summary: Get published notice by ID (public)
+      parameters:
+        - name: noticeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: locale
+          schema:
+            type: string
+          description: Locale for translated content
+      responses:
+        "200":
+          description: Notice detail
   /orders:
     get:
       tags: [orders]
@@ -1498,3 +1702,55 @@ components:
           format: date-time
         payload:
           $ref: "#/components/schemas/AdminDashboardSharePayload"
+    CreateNoticeRequest:
+      type: object
+      required: [title, summary, content]
+      properties:
+        category:
+          type: string
+          enum: [NOTICE, EVENT, MAINTENANCE, UPDATE]
+          default: NOTICE
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 500
+        content:
+          type: string
+        isPinned:
+          type: boolean
+          default: false
+        isPublished:
+          type: boolean
+          default: false
+        displayOrder:
+          type: integer
+          minimum: 0
+          default: 0
+        translations:
+          type: object
+          description: "Pre-existing translations JSON { locale: { title, summary, content } }"
+    UpdateNoticeRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [NOTICE, EVENT, MAINTENANCE, UPDATE]
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 500
+        content:
+          type: string
+        isPinned:
+          type: boolean
+        isPublished:
+          type: boolean
+        displayOrder:
+          type: integer
+          minimum: 0
+        translations:
+          type: object

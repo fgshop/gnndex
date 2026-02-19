@@ -29,6 +29,10 @@ enum AdminPermission {
   ADMIN_PERMISSION_READ
   ADMIN_PERMISSION_WRITE
   COMPLIANCE_APPROVE
+  DEPOSIT_READ
+  DEPOSIT_CREATE
+  NOTICE_READ
+  NOTICE_WRITE
 }
 
 enum UserStatus {
@@ -73,6 +77,13 @@ enum WithdrawalStatus {
   BROADCASTED
   CONFIRMED
   FAILED
+}
+
+enum NoticeCategory {
+  NOTICE
+  EVENT
+  MAINTENANCE
+  UPDATE
 }
 
 enum SupportTicketStatus {
@@ -374,4 +385,24 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([actorEmail, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+model Notice {
+  id              String         @id @default(cuid())
+  category        NoticeCategory @default(NOTICE)
+  title           String         @db.VarChar(200)
+  summary         String         @db.VarChar(500)
+  content         String         @db.Text
+  translations    Json?
+  isPinned        Boolean        @default(false) @map("is_pinned")
+  isPublished     Boolean        @default(false) @map("is_published")
+  displayOrder    Int            @default(0) @map("display_order")
+  createdByUserId String         @map("created_by_user_id")
+  publishedAt     DateTime?      @map("published_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@index([isPublished, isPinned, createdAt(sort: Desc)])
+  @@index([category, isPublished])
+  @@map("notices")
 }

@@ -8,6 +8,7 @@ import { AuditModule } from "./modules/audit/audit.module";
 import { DatabaseModule } from "./modules/database/database.module";
 import { MarketModule } from "./modules/market/market.module";
 import { OrderModule } from "./modules/order/order.module";
+import { NoticeModule } from "./modules/notice/notice.module";
 import { SupportModule } from "./modules/support/support.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
 
@@ -28,6 +29,7 @@ import { WalletModule } from "./modules/wallet/wallet.module";
     OrderModule,
     MarketModule,
     AdminModule,
+    NoticeModule,
     SupportModule,
   ],
   providers: [

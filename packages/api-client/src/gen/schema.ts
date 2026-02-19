@@ -1154,7 +1154,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        permissions: ("USER_READ" | "ORDER_READ" | "WALLET_LEDGER_READ" | "WITHDRAWAL_READ" | "WITHDRAWAL_APPROVE" | "WITHDRAWAL_REJECT" | "WITHDRAWAL_BROADCAST" | "WITHDRAWAL_CONFIRM" | "WITHDRAWAL_FAIL" | "BALANCE_ADJUST" | "AUDIT_LOG_READ" | "ADMIN_PERMISSION_READ" | "ADMIN_PERMISSION_WRITE")[];
+                        permissions: ("USER_READ" | "ORDER_READ" | "WALLET_LEDGER_READ" | "WITHDRAWAL_READ" | "WITHDRAWAL_APPROVE" | "WITHDRAWAL_REJECT" | "WITHDRAWAL_BROADCAST" | "WITHDRAWAL_CONFIRM" | "WITHDRAWAL_FAIL" | "BALANCE_ADJUST" | "AUDIT_LOG_READ" | "ADMIN_PERMISSION_READ" | "ADMIN_PERMISSION_WRITE" | "COMPLIANCE_APPROVE" | "DEPOSIT_READ" | "DEPOSIT_CREATE" | "NOTICE_READ" | "NOTICE_WRITE")[];
                     };
                 };
             };
@@ -1453,6 +1453,238 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/deposits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List deposit ledger entries with filters and pagination */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    email?: string;
+                    asset?: string;
+                    /** @description createdAt lower bound (UTC ISO-8601) */
+                    fromCreatedAt?: string;
+                    /** @description createdAt upper bound (UTC ISO-8601) */
+                    toCreatedAt?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deposit list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** Create manual admin deposit for a user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        asset: string;
+                        /** @description Positive decimal amount */
+                        amount: string;
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Admin deposit created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all notices (admin) */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    category?: "NOTICE" | "EVENT" | "MAINTENANCE" | "UPDATE";
+                    isPublished?: boolean;
+                    isPinned?: boolean;
+                    fromCreatedAt?: string;
+                    toCreatedAt?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notice list (admin) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** Create notice */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateNoticeRequest"];
+                };
+            };
+            responses: {
+                /** @description Notice created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notices/{noticeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete notice */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    noticeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notice deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update notice */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    noticeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateNoticeRequest"];
+                };
+            };
+            responses: {
+                /** @description Notice updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/admin/notices/{noticeId}/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auto-translate notice to all supported languages */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    noticeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notice translated */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/audit-logs": {
         parameters: {
             query?: never;
@@ -1481,6 +1713,85 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Audit logs list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List published notices (public) */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    category?: "NOTICE" | "EVENT" | "MAINTENANCE" | "UPDATE";
+                    /** @description Locale for translated content (e.g. en, ja, ko) */
+                    locale?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Published notice list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notices/{noticeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get published notice by ID (public) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Locale for translated content */
+                    locale?: string;
+                };
+                header?: never;
+                path: {
+                    noticeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notice detail */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1838,6 +2149,35 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             payload: components["schemas"]["AdminDashboardSharePayload"];
+        };
+        CreateNoticeRequest: {
+            /**
+             * @default NOTICE
+             * @enum {string}
+             */
+            category: "NOTICE" | "EVENT" | "MAINTENANCE" | "UPDATE";
+            title: string;
+            summary: string;
+            content: string;
+            /** @default false */
+            isPinned: boolean;
+            /** @default false */
+            isPublished: boolean;
+            /** @default 0 */
+            displayOrder: number;
+            /** @description Pre-existing translations JSON { locale: { title, summary, content } } */
+            translations?: Record<string, never>;
+        };
+        UpdateNoticeRequest: {
+            /** @enum {string} */
+            category?: "NOTICE" | "EVENT" | "MAINTENANCE" | "UPDATE";
+            title?: string;
+            summary?: string;
+            content?: string;
+            isPinned?: boolean;
+            isPublished?: boolean;
+            displayOrder?: number;
+            translations?: Record<string, never>;
         };
     };
     responses: never;

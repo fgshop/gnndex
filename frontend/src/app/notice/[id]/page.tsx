@@ -1,21 +1,55 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getSupportNoticeById, SUPPORT_NOTICE_ROWS } from "@/features/support/support-notices";
+import { getSupportNoticeById } from "@/features/support/support-notices";
 import { getSiteUrl } from "@/lib/site-url";
 
 type NoticeDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateStaticParams() {
-  return SUPPORT_NOTICE_ROWS.map((notice) => ({ id: notice.id }));
+const backendBase =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:4000/v1";
+
+type ApiNotice = {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  publishedAt?: string | null;
+  createdAt: string;
+};
+
+async function fetchNotice(id: string): Promise<{ title: string; summary: string; content: string; date: string; id: string } | null> {
+  try {
+    const res = await fetch(`${backendBase}/notices/${encodeURIComponent(id)}?locale=ko`, {
+      next: { revalidate: 60 }
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as ApiNotice;
+    if (!data?.id) return null;
+    return {
+      id: data.id,
+      title: data.title,
+      summary: data.summary,
+      content: data.content,
+      date: (data.publishedAt ?? data.createdAt).slice(0, 10)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function toFallback(id: string) {
+  const n = getSupportNoticeById(id);
+  if (!n) return null;
+  return { id: n.id, title: n.title, summary: n.summary, content: n.details.join("\n"), date: n.date };
 }
 
 export async function generateMetadata({ params }: NoticeDetailPageProps): Promise<Metadata> {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
-  const notice = getSupportNoticeById(decodedId);
+  const notice = (await fetchNotice(decodedId)) ?? toFallback(decodedId);
   const siteUrl = getSiteUrl();
 
   if (!notice) {
@@ -60,7 +94,7 @@ export async function generateMetadata({ params }: NoticeDetailPageProps): Promi
 export default async function NoticeDetailPage({ params }: NoticeDetailPageProps) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
-  const notice = getSupportNoticeById(decodedId);
+  const notice = (await fetchNotice(decodedId)) ?? toFallback(decodedId);
   const siteUrl = getSiteUrl();
   const canonicalPath = `/notice/${encodeURIComponent(decodedId)}`;
   const canonicalUrl = `${siteUrl}${canonicalPath}`;
@@ -68,6 +102,8 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
   if (!notice) {
     notFound();
   }
+
+  const contentLines = notice.content.split("\n").filter(Boolean);
 
   const noticeJsonLd = {
     "@context": "https://schema.org",
@@ -110,7 +146,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="text-sm font-semibold text-foreground">상세 안내</h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {notice.details.map((line) => (
+              {contentLines.map((line) => (
                 <li key={`${notice.id}-${line}`}>- {line}</li>
               ))}
             </ul>

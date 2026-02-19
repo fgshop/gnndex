@@ -54,6 +54,8 @@ import supportMessages from "./messages/support";
 import riskMessages from "./messages/risk";
 import complianceMessages from "./messages/compliance";
 import coinListingsMessages from "./messages/coin-listings";
+import depositsMessages from "./messages/deposits";
+import noticesMessages from "./messages/notices";
 
 const allModules: Record<string, Messages>[] = [
   commonMessages,
@@ -69,6 +71,8 @@ const allModules: Record<string, Messages>[] = [
   riskMessages,
   complianceMessages,
   coinListingsMessages,
+  depositsMessages,
+  noticesMessages,
 ];
 
 function buildMessages(locale: Locale): Messages {

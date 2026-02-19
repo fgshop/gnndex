@@ -32,6 +32,12 @@ const navSections: NavSection[] = [
       { to: "/users", labelKey: "admin.nav.users", icon: "\u25CB", require: "USER_READ" },
       { to: "/orders", labelKey: "admin.nav.orders", icon: "\u25A1", require: "ORDER_READ" },
       {
+        to: "/deposits",
+        labelKey: "admin.nav.deposits",
+        icon: "\u2193",
+        require: "DEPOSIT_READ"
+      },
+      {
         to: "/withdrawals",
         labelKey: "admin.nav.withdrawals",
         icon: "\u2191",
@@ -54,6 +60,12 @@ const navSections: NavSection[] = [
   {
     titleKey: "admin.nav.administration",
     items: [
+      {
+        to: "/notices",
+        labelKey: "admin.nav.notices",
+        icon: "\u2637",
+        require: "NOTICE_READ"
+      },
       {
         to: "/permissions",
         labelKey: "admin.nav.permissions",

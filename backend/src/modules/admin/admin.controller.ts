@@ -56,6 +56,8 @@ import { GetTradeSimulatorApprovalQueryDto } from "./dto/get-trade-simulator-app
 import { RequestTradeSimulatorLiveApprovalDto } from "./dto/request-trade-simulator-live-approval.dto";
 import { ReviewTradeSimulatorLiveApprovalDto } from "./dto/review-trade-simulator-live-approval.dto";
 import { UpdateTradeSimulatorDto } from "./dto/update-trade-simulator.dto";
+import { ListDepositsQueryDto } from "./dto/list-deposits.dto";
+import { CreateAdminDepositDto } from "./dto/create-admin-deposit.dto";
 import { TradeSimulationService } from "./trade-simulation.service";
 
 @ApiTags("admin")
@@ -280,6 +282,23 @@ export class AdminController {
     @Body() body: UpdateAdminPermissionsDto
   ) {
     return this.adminService.updateAdminPermissions(userId, body, user.sub);
+  }
+
+  @Get("deposits")
+  @ApiOperation({ summary: "List deposit ledger entries with filters and pagination" })
+  @Permissions("DEPOSIT_READ")
+  async listDeposits(@Query() query: ListDepositsQueryDto) {
+    return this.adminService.listDeposits(query);
+  }
+
+  @Post("deposits")
+  @ApiOperation({ summary: "Create manual admin deposit for a user" })
+  @Permissions("DEPOSIT_CREATE")
+  async createAdminDeposit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CreateAdminDepositDto
+  ) {
+    return this.adminService.createAdminDeposit(body, user.sub);
   }
 
   @Get("wallet-ledger")

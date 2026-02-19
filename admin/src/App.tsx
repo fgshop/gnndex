@@ -12,6 +12,8 @@ import { RiskPolicyPage } from "./pages/RiskPolicyPage";
 import { SupportTicketsPage } from "./pages/SupportTicketsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { WalletLedgerPage } from "./pages/WalletLedgerPage";
+import { DepositsPage } from "./pages/DepositsPage";
+import { NoticesPage } from "./pages/NoticesPage";
 import { WithdrawalsPage } from "./pages/WithdrawalsPage";
 
 export function App() {
@@ -30,6 +32,8 @@ export function App() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/permissions" element={<PermissionsPage />} />
+        <Route path="/deposits" element={<DepositsPage />} />
+        <Route path="/notices" element={<NoticesPage />} />
         <Route path="/withdrawals" element={<WithdrawalsPage />} />
         <Route path="/wallet-ledger" element={<WalletLedgerPage />} />
         <Route path="/coin-listings" element={<CoinListingsPage />} />

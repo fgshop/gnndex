@@ -12,13 +12,43 @@ type NoticeOgImageProps = {
   params: Promise<{ id: string }>;
 };
 
+const backendBase =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:4000/v1";
+
+type ApiNotice = {
+  id: string;
+  title: string;
+  summary: string;
+  publishedAt?: string | null;
+  createdAt: string;
+};
+
+async function fetchNoticeForOg(id: string): Promise<{ title: string; summary: string; date: string } | null> {
+  try {
+    const res = await fetch(`${backendBase}/notices/${encodeURIComponent(id)}?locale=ko`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as ApiNotice;
+    if (!data?.id) return null;
+    return {
+      title: data.title,
+      summary: data.summary,
+      date: (data.publishedAt ?? data.createdAt).slice(0, 10)
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function NoticeOpenGraphImage({ params }: NoticeOgImageProps) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
-  const notice = getSupportNoticeById(decodedId);
-  const title = notice?.title ?? "GnnDEX 공지사항";
-  const summary = notice?.summary ?? "거래소 운영 공지와 점검 정보를 확인하세요.";
-  const date = notice?.date ?? "";
+
+  const apiNotice = await fetchNoticeForOg(decodedId);
+  const fallback = getSupportNoticeById(decodedId);
+
+  const title = apiNotice?.title ?? fallback?.title ?? "GnnDEX 공지사항";
+  const summary = apiNotice?.summary ?? fallback?.summary ?? "거래소 운영 공지와 점검 정보를 확인하세요.";
+  const date = apiNotice?.date ?? fallback?.date ?? "";
 
   return new ImageResponse(
     (

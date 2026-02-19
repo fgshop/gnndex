@@ -6,8 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/auth-context";
 import { useTranslation } from "@/i18n/locale-context";
 import { getStoredAccessToken } from "@/features/auth/auth-storage";
-import { SUPPORT_NOTICE_ROWS } from "@/features/support/support-notices";
-import { apiBaseUrl } from "@/lib/api";
+import { SUPPORT_NOTICE_ROWS, SupportNotice } from "@/features/support/support-notices";
+import { api, apiBaseUrl } from "@/lib/api";
 import { getSiteUrl } from "@/lib/site-url";
 
 /* ═══════════════════════════════════════════════════════
@@ -327,6 +327,46 @@ export function SupportCenter() {
   /* ── Notice expansion ── */
   const [expandedNotice, setExpandedNotice] = useState<string | null>(null);
 
+  /* ── Notice data from API (fallback to hardcoded) ── */
+  const [notices, setNotices] = useState<SupportNotice[]>(SUPPORT_NOTICE_ROWS);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadNotices() {
+      const { data } = await api.GET("/notices", {
+        params: { query: { limit: 20, locale: "ko" } }
+      });
+      if (!mounted || !data) return;
+
+      const payload = data as {
+        items?: Array<{
+          id: string;
+          title: string;
+          summary: string;
+          content: string;
+          publishedAt?: string | null;
+          createdAt: string;
+        }>;
+      };
+
+      if (payload.items && payload.items.length > 0) {
+        setNotices(
+          payload.items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            date: (item.publishedAt ?? item.createdAt).slice(0, 10),
+            summary: item.summary,
+            details: item.content.split("\n").filter(Boolean)
+          }))
+        );
+      }
+    }
+
+    loadNotices().catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   /* ── Load tickets ── */
   useEffect(() => {
     if (!isAuthenticated) {
@@ -545,7 +585,7 @@ export function SupportCenter() {
          ══════════════════════════════════ */}
       {activeTab === "NOTICE" ? (
         <section className="space-y-3 animate-fade-up">
-          {SUPPORT_NOTICE_ROWS.map((notice) => {
+          {notices.map((notice) => {
             const isExpanded = expandedNotice === notice.id;
             return (
               <article className="panel overflow-hidden p-0" key={notice.id}>

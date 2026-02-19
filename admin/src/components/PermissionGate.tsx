@@ -17,7 +17,11 @@ export type AdminPermission =
   | "SUPPORT_TICKET_REPLY"
   | "ADMIN_PERMISSION_READ"
   | "ADMIN_PERMISSION_WRITE"
-  | "COMPLIANCE_APPROVE";
+  | "COMPLIANCE_APPROVE"
+  | "DEPOSIT_READ"
+  | "DEPOSIT_CREATE"
+  | "NOTICE_READ"
+  | "NOTICE_WRITE";
 
 type PermissionGateProps = {
   require?: AdminPermission | AdminPermission[];
